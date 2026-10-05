@@ -1,0 +1,2338 @@
+/* =====================================================================
+   CowAgent Console Styles
+   ===================================================================== */
+
+/* Animations */
+@keyframes pulseDot {
+    0%, 80%, 100% { transform: scale(0.6); opacity: 0.4; }
+    40% { transform: scale(1); opacity: 1; }
+}
+
+/* Scrollbar */
+* { scrollbar-width: thin; scrollbar-color: #9a9892 transparent; }
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #9a9892; border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: #6b6963; }
+.dark ::-webkit-scrollbar-thumb { background: #4a4844; }
+.dark ::-webkit-scrollbar-thumb:hover { background: #6b6963; }
+
+/* Generic Tooltip (via data-tooltip attribute) */
+[data-tooltip] {
+    position: relative;
+}
+[data-tooltip]::after {
+    content: attr(data-tooltip);
+    position: absolute;
+    left: 50%;
+    bottom: calc(100% + 8px);
+    transform: translateX(-50%);
+    padding: 5px 10px;
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 400;
+    line-height: 1.4;
+    white-space: nowrap;
+    background: #1c1b19;
+    color: #eae8e7;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.15s ease;
+    z-index: 100;
+}
+[data-tooltip-pos="bottom"]::after {
+    bottom: auto;
+    top: calc(100% + 8px);
+}
+.dark [data-tooltip]::after {
+    background: #2b2a27;
+    color: #f9f8f4;
+}
+[data-tooltip]:hover::after {
+    opacity: 1;
+}
+[data-tooltip=""]:hover::after {
+    display: none;
+}
+/* Float-portal elements render their tooltip via the body-level node, so
+   suppress the clipped ::after variant to avoid a double tooltip. */
+[data-tip-float]::after,
+[data-tip-float]::before {
+    display: none !important;
+}
+
+/* Sidebar */
+.sidebar-item.active { color: #141413; }
+.dark .sidebar-item.active { color: #FFFFFF; }
+.sidebar-item.active .item-icon { color: #1677ff; }
+
+/* Moving liquid-glass highlight that follows the active menu item. Its size,
+   position and backdrop-filter are set inline by Sidebar.tsx. */
+.sidebar-glass-indicator {
+    position: absolute;
+    top: 0;
+    left: 0;
+    z-index: 0;
+    margin: 0 !important;
+    pointer-events: none;
+    border-radius: 10px;
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.78), rgba(22, 119, 255, 0.18));
+    box-shadow:
+        inset 0 0 0 1px rgba(255, 255, 255, 0.7),
+        0 4px 14px rgba(22, 119, 255, 0.18);
+    transition:
+        transform 0.34s cubic-bezier(0.22, 1, 0.36, 1),
+        width 0.34s ease,
+        height 0.34s ease;
+}
+.dark .sidebar-glass-indicator {
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.16), rgba(64, 150, 255, 0.22));
+    box-shadow:
+        inset 0 0 0 1px rgba(255, 255, 255, 0.18),
+        0 6px 18px rgba(0, 0, 0, 0.45);
+}
+
+/* Session Panel */
+.session-panel {
+    width: 220px;
+    flex-shrink: 0;
+    display: flex;
+    flex-direction: column;
+    background: #faf9f7;
+    border-right: 1px solid #eae8e7;
+    height: 100vh;
+    overflow: hidden;
+    transition: width 0.2s ease;
+}
+.dark .session-panel {
+    background: #141414;
+    border-right-color: rgba(255, 255, 255, 0.08);
+}
+.session-panel.hidden { display: none; }
+.session-panel-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    /* Match the chat header height (h-14 = 56px) so both top bars align. */
+    height: 56px;
+    padding: 0 16px;
+    border-bottom: 1px solid #eae8e7;
+    flex-shrink: 0;
+}
+.dark .session-panel-header { border-bottom-color: rgba(255, 255, 255, 0.08); }
+.session-panel-title {
+    font-size: 14px;
+    font-weight: 600;
+    color: #2b2a27;
+}
+.dark .session-panel-title { color: #d8d4cf; }
+
+/* Session List */
+.session-list {
+    flex: 1;
+    overflow-y: auto;
+    padding: 4px 8px;
+    scrollbar-width: none;
+}
+.session-list:hover { scrollbar-width: thin; }
+.session-list::-webkit-scrollbar { width: 4px; background: transparent; }
+.session-list::-webkit-scrollbar-thumb { background: transparent; border-radius: 2px; }
+.session-list:hover::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.2); }
+.dark .session-list:hover::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.15); }
+.session-group-label {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 10px 8px 4px;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: #8f8d88;
+}
+/* Project / pinned headers carry an icon; date headers stay plain text. */
+.session-group-label i { font-size: 10px; flex-shrink: 0; }
+.session-group-label span {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.dark .session-group-label { color: #595959; }
+
+/* Collapsible, draggable project group header. Deliberately styled unlike the
+   date headers and session rows: normal-case, larger and darker, so a project
+   reads as a real section title rather than a faint label. */
+.session-group-project {
+    position: relative;
+    cursor: pointer;
+    border-radius: 6px;
+    margin-top: 4px;
+    padding: 6px 8px;
+    transition: background 0.12s ease;
+    user-select: none;
+    text-transform: none;
+    letter-spacing: 0;
+    font-size: 12px;
+    font-weight: 600;
+    color: #8f8d88;
+}
+.dark .session-group-project { color: #8a8a8a; }
+.session-group-project:hover { background: rgba(148, 163, 184, 0.12); }
+.session-group-project.dragging { opacity: 0.5; }
+.session-group-project.drop-target { box-shadow: inset 0 2px 0 0 #1677ff; }
+.session-group-caret {
+    transition: transform 0.15s ease;
+    font-size: 9px !important;
+    width: 10px;
+    text-align: center;
+    opacity: 0.6;
+}
+.session-group-caret.collapsed { transform: rotate(-90deg); }
+.session-group-icon { font-size: 11px !important; }
+/* Name takes the remaining width (and truncates), which pushes the count to a
+   consistent right edge across projects and the default space. */
+.session-group-name {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    text-transform: none;
+}
+/* Count always sits flush right (margin-left:auto), so it lines up across every
+   project and the default space regardless of name length. */
+.session-group-count {
+    margin-left: auto;
+    flex-shrink: 0;
+    font-size: 11px;
+    font-weight: 500;
+    color: #8f8d88;
+    opacity: 0.8;
+}
+/* Actions overlay the right edge (absolute, out of flow) so they never shift
+   the count's position; they only appear on hover, replacing the count. */
+.session-group-actions {
+    position: absolute;
+    right: 6px;
+    top: 50%;
+    transform: translateY(-50%);
+    display: inline-flex;
+    gap: 2px;
+    opacity: 0;
+    transition: opacity 0.12s ease;
+}
+.session-group-project:hover .session-group-actions { opacity: 1; }
+.session-group-project:hover .session-group-count { visibility: hidden; }
+.session-group-action {
+    border: none;
+    background: transparent;
+    color: #8f8d88;
+    cursor: pointer;
+    padding: 3px 5px;
+    border-radius: 5px;
+    font-size: 10px;
+    line-height: 1;
+}
+.session-group-action:hover { background: rgba(22, 119, 255, 0.16); color: #0958d9; }
+.dark .session-group-action:hover { background: rgba(22, 119, 255, 0.2); color: #69b1ff; }
+
+.prompt-modal-input {
+    width: 100%;
+    margin: 14px 0 4px;
+    padding: 9px 12px;
+    border: 1px solid #eae8e7;
+    border-radius: 9px;
+    font-size: 14px;
+    color: #1c1b19;
+    background: #fff;
+    outline: none;
+    box-sizing: border-box;
+}
+.prompt-modal-input:focus { border-color: #1677ff; }
+.dark .prompt-modal-input {
+    background: #1f1f1f;
+    border-color: rgba(255, 255, 255, 0.12);
+    color: #eae8e7;
+}
+
+.session-empty {
+    padding: 20px 12px;
+    text-align: center;
+    font-size: 13px;
+    color: #8f8d88;
+}
+.session-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 10px;
+    margin: 1px 0;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background 0.15s, color 0.15s;
+    color: #6b6963;
+    font-size: 13px;
+    position: relative;
+}
+.dark .session-item { color: #a3a3a3; }
+.session-item:hover {
+    background: #f9f8f4;
+    color: #141413;
+}
+.dark .session-item:hover {
+    background: rgba(255, 255, 255, 0.05);
+    color: #e5e5e5;
+}
+.session-item.active {
+    background: #eae8e7;
+    color: #141413;
+}
+.dark .session-item.active {
+    background: rgba(255, 255, 255, 0.1);
+    color: #ffffff;
+}
+.session-icon {
+    flex-shrink: 0;
+    font-size: 11px;
+    color: #8f8d88;
+    width: 16px;
+    text-align: center;
+}
+.dark .session-icon { color: #595959; }
+.session-item.active .session-icon { color: #1677ff; }
+.session-title {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    /* Breathing room at rest so the title doesn't run flush to the edge; the
+       gap collapses on hover when the action buttons take that space. */
+    padding-right: 20px;
+}
+.session-item:hover .session-title { padding-right: 0; }
+/* Under a multi-project list, sessions indent so their leading icon lines up
+   with the folder icon of the project header above them. The session icon sits
+   in a centered 16px box, so it needs a touch less left padding than the raw
+   folder-icon offset (24px) to visually align. */
+.session-item-indent { padding-left: 21px; }
+
+/* Rename button: shares the look of the delete button, sits to its left.
+   Negative right margin tightens the gap to the delete button only. */
+
+/* Pin button: same affordance as rename, and the pinned state stays visible
+   after the cursor leaves so the row explains its own position in the list. */
+/* A pinned row already shows a pin as its leading icon, so on hover the button
+   turns into "unpin" and the leading icon is what carries the state. */
+.session-item.pinned .session-icon { color: #1677ff; transform: rotate(45deg); }
+
+/* Overflow menu trigger (pin / rename / delete) shown on row hover. */
+.session-more {
+    flex-shrink: 0;
+    width: 22px;
+    height: 22px;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    border-radius: 6px;
+    font-size: 11px;
+    color: #8f8d88;
+    background: none;
+    border: none;
+    cursor: pointer;
+}
+.session-item:hover .session-more { display: flex; }
+.session-more:hover { color: #1677ff; background: rgba(22, 119, 255, 0.12); }
+.dark .session-more:hover { background: rgba(22, 119, 255, 0.18); }
+
+/* Inline title editor */
+
+/* Context Divider */
+.context-divider {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 24px;
+    color: #8f8d88;
+}
+.context-divider::before, .context-divider::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: linear-gradient(to right, transparent, #d8d4cf, transparent);
+}
+.dark .context-divider::before, .dark .context-divider::after {
+    background: linear-gradient(to right, transparent, rgba(255,255,255,0.12), transparent);
+}
+.context-divider span {
+    font-size: 12px;
+    white-space: nowrap;
+    color: #8f8d88;
+}
+
+/* Confirm Modal */
+.confirm-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 9999;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(0, 0, 0, 0.4);
+    opacity: 0;
+    transition: opacity 0.2s ease;
+}
+.confirm-overlay.visible { opacity: 1; }
+.confirm-modal {
+    background: #fff;
+    border-radius: 14px;
+    width: 380px;
+    max-width: 90vw;
+    padding: 28px 24px 20px;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.18);
+    transform: scale(0.92);
+    transition: transform 0.2s ease;
+}
+.confirm-overlay.visible .confirm-modal { transform: scale(1); }
+.dark .confirm-modal {
+    background: #1f1f1f;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+}
+.confirm-title {
+    font-size: 16px;
+    font-weight: 600;
+    color: #1f2937;
+    margin-bottom: 8px;
+}
+.dark .confirm-title { color: #eae8e7; }
+.confirm-message {
+    font-size: 14px;
+    color: #6b6963;
+    line-height: 1.5;
+    margin-bottom: 24px;
+}
+.dark .confirm-message { color: #8f8d88; }
+.confirm-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+}
+.confirm-btn {
+    padding: 8px 20px;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    border: none;
+    transition: all 0.15s ease;
+}
+.confirm-btn-cancel {
+    background: #f9f8f4;
+    color: #2b2a27;
+}
+.confirm-btn-cancel:hover { background: #eae8e7; }
+.dark .confirm-btn-cancel {
+    background: rgba(255, 255, 255, 0.08);
+    color: #d8d4cf;
+}
+.dark .confirm-btn-cancel:hover { background: rgba(255, 255, 255, 0.14); }
+.confirm-btn-ok {
+    background: #ef4444;
+    color: #fff;
+}
+.confirm-btn-ok:hover { background: #dc2626; }
+
+/* Session panel overlay (mobile only, click to close) */
+.session-panel-overlay {
+    display: none;
+}
+@media (max-width: 768px) {
+    .session-panel-overlay {
+        display: block;
+        position: fixed;
+        inset: 0;
+        z-index: 44;
+        background: rgba(0, 0, 0, 0.3);
+    }
+    .session-panel-overlay.hidden {
+        display: none;
+    }
+}
+
+/* Mobile: session panel as overlay */
+@media (max-width: 768px) {
+    .session-panel {
+        position: fixed;
+        top: 0;
+        left: 0;
+        z-index: 45;
+        width: 220px;
+        box-shadow: 4px 0 24px rgba(0, 0, 0, 0.15);
+    }
+    .dark .session-panel {
+        box-shadow: 4px 0 24px rgba(0, 0, 0, 0.4);
+    }
+}
+
+/* Menu Groups */
+.menu-group-items { max-height: 0; overflow: hidden; transition: max-height 0.25s ease-out; }
+.menu-group.open .menu-group-items { max-height: 2000px; transition: max-height 0.35s ease-in; }
+.menu-group .chevron { transition: transform 0.25s ease; }
+.menu-group.open .chevron { transform: rotate(90deg); }
+
+/* View Switching */
+.view { display: none; height: 100%; }
+.view.active { display: flex; flex-direction: column; }
+
+/* Reserve the vertical scrollbar gutter on each view's scroll container so a
+   tab switch that briefly changes content height (e.g. the Models tab's
+   loading state) can't toggle the scrollbar and shift centered content. */
+.view.active > div { scrollbar-gutter: stable; }
+
+/* Chat view is split horizontally: conversation + workspace panel */
+#view-chat.active { flex-direction: row; }
+.chat-main {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+}
+
+/* Markdown Content */
+.msg-content p { margin: 0.5em 0; line-height: 1.7; }
+.msg-content p:first-child { margin-top: 0; }
+.msg-content p:last-child { margin-bottom: 0; }
+.msg-content h1, .msg-content h2, .msg-content h3,
+.msg-content h4, .msg-content h5, .msg-content h6 {
+    margin-top: 1.2em; margin-bottom: 0.6em; font-weight: 600; line-height: 1.3;
+}
+.msg-content h1 { font-size: 1.4em; }
+.msg-content h2 { font-size: 1.25em; }
+.msg-content h3 { font-size: 1.1em; }
+.msg-content ul { margin: 0.5em 0; padding-left: 1.8em; list-style: disc; }
+.msg-content ol { margin: 0.5em 0; padding-left: 1.8em; list-style: decimal; }
+.msg-content li { margin: 0.25em 0; }
+.msg-content pre {
+    border-radius: 8px; overflow-x: auto; margin: 0.8em 0;
+    background: #f9f8f4; padding: 1em;
+}
+.dark .msg-content pre { background: #141414; }
+.msg-content code {
+    font-family: 'JetBrains Mono', 'Fira Code', Consolas, monospace;
+    font-size: 0.875em;
+}
+.msg-content :not(pre) > code {
+    background: rgba(22, 119, 255, 0.1); color: #1C6B3B;
+    padding: 2px 6px; border-radius: 4px;
+}
+.dark .msg-content :not(pre) > code {
+    background: rgba(22, 119, 255, 0.15); color: #69b1ff;
+}
+.msg-content pre code { background: transparent; padding: 0; color: inherit; }
+.msg-content blockquote {
+    border-left: 3px solid #1677ff; padding: 0.5em 1em;
+    margin: 0.8em 0; background: rgba(22, 119, 255, 0.05); border-radius: 0 6px 6px 0;
+}
+.dark .msg-content blockquote { background: rgba(22, 119, 255, 0.08); }
+.msg-content table { border-collapse: collapse; width: 100%; margin: 0.8em 0; }
+.msg-content th, .msg-content td {
+    border: 1px solid #eae8e7; padding: 8px 12px; text-align: left;
+}
+.dark .msg-content th, .dark .msg-content td { border-color: rgba(255,255,255,0.1); }
+.msg-content th { background: #f9f8f4; font-weight: 600; }
+.dark .msg-content th { background: #141414; }
+.msg-content img { max-width: 100%; height: auto; border-radius: 8px; margin: 0.5em 0; }
+.msg-content a { color: #0958d9; text-decoration: underline; }
+.msg-content a:hover { color: #003eb3; }
+
+/* Links to workspace files: opened in the preview panel, not a new tab. */
+.msg-content a.ws-link {
+    cursor: pointer;
+    text-decoration-style: dotted;
+    text-underline-offset: 2px;
+}
+
+/* Overrides for user bubble (white text on green bg) */
+.user-bubble.msg-content a { color: #ffffff !important; text-decoration: underline; text-decoration-color: rgba(255,255,255,0.6); }
+.user-bubble.msg-content a:hover { color: #bae0ff !important; text-decoration-color: #bae0ff; }
+.user-bubble.msg-content :not(pre) > code { background: rgba(255,255,255,0.2); color: #ffffff; }
+.msg-content hr { border: none; height: 1px; background: #eae8e7; margin: 1.2em 0; }
+.dark .msg-content hr { background: rgba(255,255,255,0.1); }
+
+/* SSE Streaming cursor */
+@keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0; } }
+.sse-streaming::after {
+    content: '▋';
+    display: inline-block;
+    margin-left: 2px;
+    color: #1677ff;
+    animation: blink 0.9s step-end infinite;
+    font-size: 0.85em;
+    vertical-align: middle;
+}
+
+/* Agent steps (thinking summaries + tool indicators) */
+.agent-steps:empty { display: none; }
+.agent-steps:not(:empty) {
+    margin-bottom: 0.625rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px dashed rgba(0, 0, 0, 0.08);
+}
+.dark .agent-steps:not(:empty) { border-bottom-color: rgba(255, 255, 255, 0.08); }
+
+.agent-step {
+    font-size: 0.75rem;
+    line-height: 1.4;
+    color: #9a9892;
+    margin-bottom: 0.375rem;
+    padding: 5px 8px;
+    border-radius: 10px;
+    border: 1px solid rgba(255, 255, 255, 0.55);
+    background: rgba(255, 255, 255, 0.42);
+    backdrop-filter: blur(5px) saturate(140%);
+    -webkit-backdrop-filter: blur(5px) saturate(140%);
+}
+.dark .agent-step {
+    border-color: rgba(255, 255, 255, 0.08);
+    background: rgba(255, 255, 255, 0.04);
+}
+.agent-step:last-child { margin-bottom: 0; }
+/* Non-Chromium fallback for the glass tool cards (Chromium uses the inline
+   displacement filter supplied by GlassSurface). */
+.agent-step.glass-surface {
+    backdrop-filter: blur(6px) saturate(140%);
+    -webkit-backdrop-filter: blur(6px) saturate(140%);
+}
+
+/* Thinking step - collapsible */
+.agent-thinking-step .thinking-header {
+    display: flex;
+    align-items: center;
+    gap: 0.375rem;
+    cursor: pointer;
+    user-select: none;
+}
+.agent-thinking-step .thinking-header:hover { color: #6b6963; }
+.dark .agent-thinking-step .thinking-header:hover { color: #d8d4cf; }
+.agent-thinking-step .thinking-header i:first-child { font-size: 0.625rem; margin-top: 1px; }
+.agent-thinking-step .thinking-chevron {
+    font-size: 0.5rem;
+    margin-left: auto;
+    transition: transform 0.2s ease;
+    opacity: 0.5;
+}
+.agent-thinking-step.expanded .thinking-chevron { transform: rotate(90deg); }
+.agent-thinking-step .thinking-full {
+    display: none;
+    margin-top: 0.375rem;
+    margin-left: 1rem;
+    padding: 0.5rem;
+    background: rgba(0, 0, 0, 0.02);
+    border-radius: 6px;
+    border: 1px solid rgba(0, 0, 0, 0.04);
+    font-size: 0.75rem;
+    line-height: 1.5;
+    color: #9a9892;
+    max-height: 300px;
+    overflow-y: auto;
+}
+.dark .agent-thinking-step .thinking-full {
+    background: rgba(255, 255, 255, 0.02);
+    border-color: rgba(255, 255, 255, 0.04);
+}
+.agent-thinking-step.expanded .thinking-full { display: block; }
+.agent-thinking-step .thinking-full p { margin: 0.25em 0; }
+.agent-thinking-step .thinking-full p:first-child { margin-top: 0; }
+.agent-thinking-step .thinking-full p:last-child { margin-bottom: 0; }
+.agent-thinking-step .thinking-duration {
+    font-size: 0.625rem;
+    color: #b0b8c4;
+    margin-bottom: 0.375rem;
+}
+/* Streaming reasoning: render as plain pre to avoid expensive markdown
+   re-parsing on every chunk. Wrap long lines so the bubble width is
+   respected and use the same font size/color as the rendered version. */
+.agent-thinking-step .thinking-stream-pre {
+    margin: 0;
+    padding: 0;
+    background: transparent;
+    border: 0;
+    font-family: inherit;
+    font-size: inherit;
+    line-height: 1.5;
+    color: inherit;
+    white-space: pre-wrap;
+    word-break: break-word;
+    overflow-wrap: anywhere;
+}
+
+/* Content step - real text output frozen before tool calls */
+.agent-content-step {
+    font-size: 0.875rem;
+    line-height: 1.6;
+    color: inherit;
+    margin-bottom: 0.5rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px dashed rgba(0, 0, 0, 0.06);
+}
+.dark .agent-content-step { border-bottom-color: rgba(255, 255, 255, 0.06); }
+.agent-content-step .agent-content-body p { margin: 0.25em 0; }
+.agent-content-step .agent-content-body p:first-child { margin-top: 0; }
+.agent-content-step .agent-content-body p:last-child { margin-bottom: 0; }
+
+/* Tool step - collapsible */
+.agent-tool-step .tool-header {
+    display: flex;
+    align-items: center;
+    gap: 0.375rem;
+    cursor: pointer;
+    user-select: none;
+    padding: 1px 0;
+    border-radius: 4px;
+}
+.agent-tool-step .tool-header:hover { color: #6b6963; }
+.dark .agent-tool-step .tool-header:hover { color: #d8d4cf; }
+.agent-tool-step .tool-icon { font-size: 0.625rem; }
+.agent-tool-step .tool-chevron {
+    font-size: 0.5rem;
+    margin-left: auto;
+    transition: transform 0.2s ease;
+    opacity: 0.5;
+}
+.agent-tool-step.expanded .tool-chevron { transform: rotate(90deg); }
+.agent-tool-step .tool-time {
+    font-size: 0.65rem;
+    opacity: 0.6;
+    margin-left: 0.25rem;
+}
+
+/* Tool detail panel */
+.agent-tool-step .tool-detail {
+    display: none;
+    margin-top: 0.375rem;
+    margin-left: 1rem;
+    padding: 0.5rem;
+    background: rgba(0, 0, 0, 0.02);
+    border-radius: 6px;
+    border: 1px solid rgba(0, 0, 0, 0.04);
+}
+.dark .agent-tool-step .tool-detail {
+    background: rgba(255, 255, 255, 0.02);
+    border-color: rgba(255, 255, 255, 0.04);
+}
+.agent-tool-step.expanded .tool-detail { display: block; }
+.tool-detail-section { margin-bottom: 0.375rem; }
+.tool-detail-section:last-child { margin-bottom: 0; }
+.tool-detail-label {
+    font-size: 0.625rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    opacity: 0.6;
+    margin-bottom: 0.125rem;
+}
+.tool-detail-content {
+    font-family: 'JetBrains Mono', 'Fira Code', Consolas, monospace;
+    font-size: 0.7rem;
+    line-height: 1.5;
+    white-space: pre-wrap;
+    word-break: break-all;
+    max-height: 200px;
+    overflow-y: auto;
+    margin: 0;
+    padding: 0.25rem 0;
+    background: transparent;
+    color: inherit;
+}
+.tool-error-text { color: #f87171; }
+.tool-live-output:empty { display: none; }
+
+/* Sub agent steps: the tool calls a sub agent made inside one spawn */
+.agent-tool-step .tool-substep-count {
+    font-size: 0.65rem;
+    opacity: 0.5;
+    margin-left: 0.25rem;
+}
+.tool-substeps {
+    display: flex;
+    flex-direction: column;
+    gap: 0.125rem;
+    max-height: 240px;
+    overflow-y: auto;
+    padding: 0.125rem 0;
+}
+.tool-substep {
+    display: flex;
+    align-items: baseline;
+    gap: 0.375rem;
+    font-size: 0.7rem;
+    line-height: 1.6;
+    min-width: 0;
+}
+.tool-substep-icon {
+    font-size: 0.55rem;
+    opacity: 0.6;
+    flex-shrink: 0;
+}
+.tool-substep-failed { color: #f87171; opacity: 0.9; }
+.tool-substep-name {
+    font-family: 'JetBrains Mono', 'Fira Code', Consolas, monospace;
+    flex-shrink: 0;
+}
+.tool-substep-args {
+    opacity: 0.55;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    min-width: 0;
+}
+.tool-substep-time {
+    margin-left: auto;
+    padding-left: 0.375rem;
+    font-size: 0.65rem;
+    opacity: 0.45;
+    flex-shrink: 0;
+}
+
+/* A tool outcome written for a person, rendered as markdown */
+.tool-display-output { display: none; }
+.tool-display-output.has-content {
+    display: block;
+    font-size: 0.75rem;
+    line-height: 1.65;
+    max-height: 420px;
+    overflow-y: auto;
+    padding: 0.125rem 0;
+}
+.tool-display-output h3 {
+    font-size: 0.75rem;
+    font-weight: 600;
+    margin: 0.5rem 0 0.25rem;
+    opacity: 0.85;
+}
+.tool-display-output h3:first-child { margin-top: 0; }
+.tool-display-output p { margin: 0.25rem 0; }
+.tool-display-output ul,
+.tool-display-output ol { margin: 0.25rem 0; padding-left: 1.1rem; }
+.tool-display-output hr {
+    margin: 0.5rem 0;
+    border: 0;
+    border-top: 1px solid rgba(0, 0, 0, 0.08);
+}
+.dark .tool-display-output hr { border-top-color: rgba(255, 255, 255, 0.08); }
+.tool-display-output code {
+    font-family: 'JetBrains Mono', 'Fira Code', Consolas, monospace;
+    font-size: 0.7rem;
+}
+.tool-streaming .tool-live-output:not(:empty)::after {
+    content: ' ';
+    display: inline-block;
+    width: 0.45em;
+    height: 1em;
+    margin-left: 0.15em;
+    vertical-align: -0.15em;
+    background: currentColor;
+    animation: tool-cursor-blink 1s steps(1) infinite;
+}
+@keyframes tool-cursor-blink { 50% { opacity: 0; } }
+
+/* Log level highlighting */
+.log-line { display: block; }
+.log-line-debug    { color: #9a9892; }
+.log-line-info     { background-color: rgba(59, 130, 246, 0.08); }
+.log-line-warning  { background-color: rgba(234, 179, 8, 0.15); color: #fde68a; }
+.log-line-error    { background-color: rgba(239, 68, 68, 0.15); color: #fca5a5; }
+.log-line-critical { background-color: rgba(239, 68, 68, 0.35); color: #ff4444; font-weight: bold;  }
+
+/* Tool failed state */
+.agent-tool-step.tool-failed .tool-name { color: #f87171; }
+
+/* Config form controls */
+#view-config input[type="text"],
+#view-config input[type="number"],
+#view-config input[type="password"] {
+    height: 40px;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+#view-config input:focus {
+    border-color: #1677ff;
+    box-shadow: 0 0 0 3px rgba(22, 119, 255, 0.12);
+}
+#view-config input[type="text"]:hover,
+#view-config input[type="number"]:hover,
+#view-config input[type="password"]:hover {
+    border-color: #9a9892;
+}
+.dark #view-config input[type="text"]:hover,
+.dark #view-config input[type="number"]:hover,
+.dark #view-config input[type="password"]:hover {
+    border-color: #6b6963;
+}
+
+/* API Key masking via CSS (avoids browser password prompts) */
+.cfg-key-masked {
+    -webkit-text-security: disc;
+    text-security: disc;
+}
+
+/* Provider logo image — vendors flagged as `provider-logo-invert-dark`
+   ship a black wordmark that disappears on the dark canvas; we invert their
+   luminance only in dark mode so the brand stays recognizable without
+   touching multi-color marks like Google/MiniMax. */
+.provider-logo-img {
+    object-fit: contain;
+    object-position: center;
+}
+.dark .provider-logo-invert-dark {
+    filter: invert(1) brightness(1.15);
+}
+
+/* Models page — provider dropdown rows.
+   Configured rows look like ordinary picker entries; the .active row's
+   trailing brand ✓ already announces "this is what's selected".
+   Unconfigured rows are visually subdued and carry a trailing gear icon
+   as a "click to set up" affordance. */
+.cap-provider-label {
+    flex: 1 1 auto;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.cap-provider-gear {
+    margin-left: auto;
+    padding-left: 12px;
+    color: #9a9892;
+    font-size: 11px;
+    flex-shrink: 0;
+}
+.cap-provider-item.cap-provider-unconfigured {
+    color: #9a9892;
+}
+.dark .cap-provider-item.cap-provider-unconfigured {
+    color: #6b6963;
+}
+.cap-provider-item.cap-provider-unconfigured:hover {
+    color: #4a4844;
+}
+.dark .cap-provider-item.cap-provider-unconfigured:hover {
+    color: #d8d4cf;
+}
+.cap-provider-item.cap-provider-unconfigured:hover .cap-provider-gear {
+    color: #4a4844;
+}
+.dark .cap-provider-item.cap-provider-unconfigured:hover .cap-provider-gear {
+    color: #d8d4cf;
+}
+/* If the active row ever lands on an unconfigured vendor (defensive — the
+   click handler normally diverts to the modal), suppress the global ✓ so
+   the gear remains the sole trailing icon and the row keeps reading as
+   "needs setup" rather than "already selected". */
+.cap-provider-item.cap-provider-unconfigured.active::after {
+    content: none;
+}
+
+/* "Add vendor" modal picker — each configured row carries a static
+   brand-green ✓ via decorateVendorModalPicker so users can see what's set
+   up at a glance. The active row's global ✓ is suppressed here to avoid
+   showing two checks side by side on configured + selected rows. */
+.vendor-picker-item.active::after {
+    content: none;
+}
+.vendor-picker-configured-mark {
+    margin-left: auto;
+    padding-left: 12px;
+    color: #1677ff;
+    font-size: 11px;
+    flex-shrink: 0;
+}
+/* "Custom" row is an add-new action: trailing + instead of ✓ */
+.vendor-picker-add-mark {
+    margin-left: auto;
+    padding-left: 12px;
+    color: #9a9892;
+    font-size: 11px;
+    flex-shrink: 0;
+}
+
+/* Chat Input */
+/* Keep the placeholder on one line; ellipsize when the box is too narrow so it
+   never wraps and inflates the single-row height. Actual input can still wrap. */
+#chat-input::placeholder {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* Attachment Preview Bar */
+/* Attachments sit on their own line at the top of the composer card, growing to
+   the full card width and scrolling horizontally so chips never wrap. */
+.attachment-preview {
+    display: flex;
+    flex-wrap: nowrap;
+    gap: 8px;
+    flex: 1 1 auto;
+    min-width: 0;
+    overflow-x: auto;
+    overflow-y: hidden;
+    padding: 0;
+    scrollbar-width: thin;
+}
+.attachment-preview::-webkit-scrollbar { height: 6px; }
+.attachment-preview::-webkit-scrollbar-thumb { background: rgba(148,163,184,0.4); border-radius: 3px; }
+.attachment-preview.hidden { display: none; }
+
+/* ==========================================================================
+   Composer card
+   One rounded surface: attachments and text on top, session controls along the
+   bottom edge. The controls that used to sit above the input (workspace) and
+   inside it (optimize / mic) share that bottom row now, which is where working
+   agents put them - the box reads as "what you are about to send, and under
+   what settings".
+   The card is the positioning context for every popover inside it (slash,
+   mention, attach, workspace / permission / model menus), all of which open
+   upward from its top edge.
+   ========================================================================== */
+.composer-card {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    padding: 10px 10px 8px;
+    border-radius: 18px;
+    border: 1px solid #eae8e7;
+    background: rgba(255, 255, 255, 0.62);
+    transition: border-color 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
+}
+.composer-card:focus-within {
+    background: rgba(255, 255, 255, 0.85);
+    border-color: #1677ff;
+    box-shadow: 0 0 0 3px rgba(22, 119, 255, 0.12);
+}
+.dark .composer-card {
+    border-color: rgba(255, 255, 255, 0.12);
+    background: rgba(255, 255, 255, 0.04);
+}
+.dark .composer-card:focus-within {
+    background: rgba(255, 255, 255, 0.06);
+    border-color: #1677ff;
+    box-shadow: 0 0 0 3px rgba(22, 119, 255, 0.14);
+}
+/* Drag-over highlight reuses the focus treatment. */
+.composer-card.drag-over { border-color: #1677ff; background: rgba(255, 255, 255, 0.88); }
+
+.composer-textarea {
+    width: 100%;
+    min-height: 52px;
+    max-height: 220px;
+    padding: 2px 4px;
+    border: none;
+    background: transparent;
+    resize: none;
+    outline: none;
+    color: #1c1b19;
+    font-size: 14px;
+    line-height: 1.6;
+    overflow-y: hidden;
+}
+.composer-textarea::placeholder { color: #9a9892; }
+.dark .composer-textarea { color: #f9f8f4; }
+.dark .composer-textarea::placeholder { color: #6b6963; }
+
+.composer-toolbar {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    min-width: 0;
+}
+.composer-group {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    min-width: 0;
+}
+/* The left group owns the leftover width so its chips truncate instead of
+   pushing send off the card; the right group keeps its natural size. */
+.composer-group:first-child { flex: 1 1 auto; }
+.composer-group-end { flex: 0 0 auto; margin-left: auto; gap: 4px; }
+
+.composer-divider {
+    width: 1px;
+    height: 16px;
+    margin: 0 4px;
+    flex-shrink: 0;
+    background: #eae8e7;
+}
+.dark .composer-divider { background: rgba(255, 255, 255, 0.12); }
+
+.composer-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    max-width: 168px;
+    min-width: 0;
+    padding: 4px 8px;
+    border: 1px solid transparent;
+    border-radius: 8px;
+    background: transparent;
+    color: #6b6963;
+    font-size: 12px;
+    line-height: 1.4;
+    cursor: pointer;
+    transition: background 0.12s ease, color 0.12s ease, border-color 0.12s ease;
+}
+.composer-chip:hover { background: #e6f4ff; color: #003eb3; }
+.composer-chip > i { font-size: 11px; flex-shrink: 0; }
+.composer-chip-label {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.composer-chip-caret { font-size: 9px; opacity: 0.55; }
+.dark .composer-chip { color: #9a9892; }
+
+/* Permission chip stays neutral like the other composer chips: the icon alone
+   distinguishes the mode, so an unrestricted session no longer shouts in a warm
+   colour. Only workspace-write keeps a subtle brand tint as the "safe default". */
+
+/* Inline hint shown under a tool card that the permission gate refused.
+   Neutral, not alarming: it explains why nothing happened and offers the fix. */
+.perm-denied-hint {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 6px 0 10px;
+    padding: 8px 12px;
+    border: 1px solid #eae8e7;
+    border-radius: 10px;
+    background: #faf9f7;
+    font-size: 13px;
+    color: #4a4844;
+}
+.perm-denied-hint > i { font-size: 12px; color: #6b6963; flex-shrink: 0; }
+.perm-denied-text { flex: 1; min-width: 0; }
+.perm-denied-btn {
+    flex-shrink: 0;
+    padding: 4px 12px;
+    border: none;
+    border-radius: 8px;
+    background: #0958d9;
+    color: #fff;
+    font-size: 12px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background 0.12s ease;
+}
+.perm-denied-btn:hover { background: #003eb3; }
+.dark .perm-denied-hint {
+    border-color: rgba(255, 255, 255, 0.1);
+    background: rgba(255, 255, 255, 0.04);
+    color: #d8d4cf;
+}
+.dark .perm-denied-hint > i { color: #9a9892; }
+
+/* Compact attachment chips/thumbnails so adding one barely grows the card. */
+.composer-card .att-thumb { width: 34px; height: 34px; }
+.composer-card .att-chip { padding: 3px 24px 3px 8px; font-size: 11px; }
+.composer-card .att-remove { top: 1px; right: 1px; width: 15px; height: 15px; line-height: 15px; font-size: 10px; }
+
+/* Narrow viewports: chips keep their icon and drop the text label, so the row
+   still holds workspace / permission / model without wrapping. */
+@media (max-width: 640px) {
+    .composer-chip { max-width: none; padding: 4px 6px; }
+    .composer-chip-label { display: none; }
+    .composer-divider { margin: 0 2px; }
+}
+
+/* ==========================================================================
+   Composer popovers (permission + model), sharing the workspace menu's look
+   ========================================================================== */
+/* A footnote at the bottom of the permission menu, for the one caveat that
+   belongs next to the choice: command interception is best effort. */
+
+.att-thumb {
+    position: relative;
+    width: 64px; height: 64px;
+    border-radius: 8px;
+    overflow: hidden;
+    border: 1px solid #eae8e7;
+    flex-shrink: 0;
+}
+.dark .att-thumb { border-color: rgba(255,255,255,0.1); }
+.att-thumb img {
+    width: 100%; height: 100%;
+    object-fit: cover;
+}
+
+.att-chip {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 28px 6px 10px;
+    border-radius: 8px;
+    background: #f9f8f4;
+    border: 1px solid #eae8e7;
+    font-size: 12px;
+    color: #4a4844;
+    max-width: 180px;
+}
+.dark .att-chip { background: rgba(255,255,255,0.05); border-color: rgba(255,255,255,0.1); color: #9a9892; }
+.att-uploading { opacity: 0.6; pointer-events: none; }
+.att-name {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.att-remove {
+    position: absolute;
+    top: -4px; right: -4px;
+    width: 18px; height: 18px;
+    border-radius: 50%;
+    background: #ef4444;
+    color: #fff;
+    border: none;
+    font-size: 12px;
+    line-height: 18px;
+    text-align: center;
+    cursor: pointer;
+    padding: 0;
+    opacity: 0;
+    transition: opacity 0.15s;
+}
+.att-thumb:hover .att-remove,
+.att-chip:hover .att-remove { opacity: 1; }
+
+/* Drag-over highlight */
+.drag-over {
+    background: rgba(22, 119, 255, 0.08) !important;
+    border-color: #1677ff !important;
+}
+
+/* User message attachments */
+.user-msg-attachments {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-bottom: 6px;
+}
+.user-msg-image {
+    max-width: 200px;
+    max-height: 160px;
+    border-radius: 8px;
+    object-fit: cover;
+    cursor: pointer;
+}
+.user-msg-image:hover { opacity: 0.9; }
+.user-msg-file {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 10px;
+    border-radius: 6px;
+    background: rgba(255,255,255,0.15);
+    font-size: 12px;
+}
+.user-msg-file.is-openable {
+    cursor: pointer;
+    transition: background 0.15s ease;
+}
+.user-msg-file.is-openable:hover {
+    background: rgba(255,255,255,0.28);
+}
+
+/* Placeholder Cards */
+.placeholder-card {
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+.placeholder-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px -5px rgba(0, 0, 0, 0.1);
+}
+
+/* Slash Command Menu */
+.slash-menu {
+    position: absolute;
+    bottom: calc(100% + 6px);
+    left: 0;
+    right: 0;
+    max-height: 320px;
+    overflow-y: auto;
+    background: #fff;
+    border: 1px solid #eae8e7;
+    border-radius: 12px;
+    box-shadow: 0 8px 30px -6px rgba(0, 0, 0, 0.1), 0 2px 8px -2px rgba(0, 0, 0, 0.04);
+    z-index: 50;
+    padding: 4px;
+    animation: slashMenuIn 0.15s ease-out;
+}
+.slash-menu.hidden { display: none; }
+
+@keyframes slashMenuIn {
+    from { opacity: 0; transform: translateY(6px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+
+.slash-menu-header {
+    padding: 6px 10px 4px;
+    font-size: 11px;
+    font-weight: 600;
+    color: #9a9892;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.slash-menu-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 10px;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background 0.12s ease;
+}
+.slash-menu-item:hover,
+.slash-menu-item.active {
+    background: #e6f4ff;
+}
+.slash-menu-item .cmd {
+    font-size: 13px;
+    font-weight: 500;
+    color: #2b2a27;
+    font-family: ui-monospace, SFMono-Regular, 'SF Mono', Menlo, monospace;
+}
+.slash-menu-item.active .cmd {
+    color: #003eb3;
+}
+.slash-menu-item .desc {
+    font-size: 12px;
+    color: #9a9892;
+    margin-left: 12px;
+    white-space: nowrap;
+}
+
+/* Dark mode */
+.dark .slash-menu {
+    background: #1f1f1f;
+    border-color: rgba(255, 255, 255, 0.1);
+    box-shadow: 0 8px 30px -6px rgba(0, 0, 0, 0.35), 0 2px 8px -2px rgba(0, 0, 0, 0.15);
+}
+.dark .slash-menu-header {
+    color: #6b6963;
+}
+.dark .slash-menu-item:hover,
+.dark .slash-menu-item.active {
+    background: rgba(22, 119, 255, 0.1);
+}
+.dark .slash-menu-item .cmd {
+    color: #eae8e7;
+}
+.dark .slash-menu-item.active .cmd {
+    color: #1677ff;
+}
+.dark .slash-menu-item .desc {
+    color: #6b6963;
+}
+
+/* ---- Folder picker modal (open project) ---- */
+.fp-btn {
+    width: 30px; height: 30px;
+    display: inline-flex; align-items: center; justify-content: center;
+    border-radius: 8px; border: 1px solid #eae8e7; background: #faf9f7;
+    color: #6b6963; font-size: 13px; cursor: pointer; transition: background .12s ease;
+}
+.fp-btn:hover:not([disabled]) { background: #e6f4ff; color: #003eb3; border-color: #cdeed8; }
+.fp-btn[disabled] { opacity: 0.4; cursor: default; }
+.dark .fp-btn { background: rgba(255,255,255,0.05); border-color: rgba(255,255,255,0.1); color: #9a9892; }
+.dark .fp-btn:hover:not([disabled]) { background: rgba(22,119,255,0.12); color: #1677ff; }
+
+.fp-row {
+    display: flex; align-items: center; gap: 10px;
+    padding: 8px 10px; border-radius: 8px; cursor: pointer;
+    color: #2b2a27; font-size: 14px; transition: background .1s ease;
+}
+.fp-row:hover { background: #f9f8f4; }
+.fp-row.selected { background: #e6f4ff; color: #003eb3; }
+.fp-row > i:first-child { color: #eab308; width: 16px; text-align: center; flex-shrink: 0; }
+.fp-row.selected > i:first-child { color: #003eb3; }
+.fp-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.fp-into { color: #d8d4cf; font-size: 11px; padding: 4px; border-radius: 6px; flex-shrink: 0; }
+.fp-into:hover { background: rgba(0,0,0,0.06); color: #6b6963; }
+.dark .fp-row { color: #eae8e7; }
+.dark .fp-row:hover { background: rgba(255,255,255,0.06); }
+.dark .fp-row.selected { background: rgba(22,119,255,0.12); color: #1677ff; }
+.dark .fp-into:hover { background: rgba(255,255,255,0.1); }
+.fp-empty {
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    gap: 8px; height: 200px; color: #9a9892; font-size: 13px;
+}
+.fp-empty i { font-size: 22px; opacity: 0.5; }
+
+/* ============================================================
+   Knowledge View
+   ============================================================ */
+
+/* Tab toggle */
+.knowledge-tab, .memory-tab, .config-tab {
+    color: #6b6963;
+}
+.knowledge-tab.active, .memory-tab.active, .config-tab.active {
+    background: #fff;
+    color: #2b2a27;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+}
+.dark .knowledge-tab.active, .dark .memory-tab.active, .dark .config-tab.active {
+    background: rgba(255,255,255,0.1);
+    color: #eae8e7;
+}
+
+/* File tree */
+.knowledge-tree-group {
+    margin-bottom: 2px;
+}
+.knowledge-tree-group-btn {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    width: 100%;
+    padding: 6px 8px;
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 600;
+    color: #6b6963;
+    cursor: pointer;
+    border: none;
+    background: none;
+    transition: background 0.15s, color 0.15s;
+    text-transform: capitalize;
+}
+.knowledge-tree-group-btn:hover {
+    background: rgba(0,0,0,0.04);
+    color: #2b2a27;
+}
+.dark .knowledge-tree-group-btn:hover {
+    background: rgba(255,255,255,0.06);
+    color: #eae8e7;
+}
+.knowledge-tree-group-btn i.chevron {
+    font-size: 8px;
+    transition: transform 0.15s;
+}
+.knowledge-tree-group.open > .knowledge-tree-group-btn .chevron {
+    transform: rotate(90deg);
+}
+.knowledge-tree-group-items {
+    display: none;
+}
+.knowledge-tree-group.open > .knowledge-tree-group-items {
+    display: block;
+}
+
+.knowledge-tree-file {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 5px 8px 5px 24px;
+    border-radius: 6px;
+    font-size: 12px;
+    color: #6b6963;
+    cursor: pointer;
+    border: none;
+    background: none;
+    width: 100%;
+    text-align: left;
+    transition: background 0.15s, color 0.15s;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.knowledge-tree-file:hover {
+    background: rgba(0,0,0,0.04);
+    color: #2b2a27;
+}
+.knowledge-tree-file.active {
+    background: #e6f4ff;
+    color: #003eb3;
+}
+
+.knowledge-actions {
+    display: flex;
+    gap: 2px;
+    margin-left: auto;
+    opacity: 0;
+    transition: opacity 0.15s;
+}
+.knowledge-tree-file:hover .knowledge-actions,
+.knowledge-tree-group-btn:hover .knowledge-actions,
+.knowledge-tree-file:focus-within .knowledge-actions,
+.knowledge-tree-group-btn:focus-within .knowledge-actions {
+    opacity: 1;
+}
+.knowledge-action {
+    padding: 3px 5px;
+    border-radius: 5px;
+    color: #9a9892;
+    font-size: 9px;
+}
+.knowledge-action:hover {
+    color: #003eb3;
+    background: rgba(34, 133, 71, 0.08);
+}
+.knowledge-action.danger:hover {
+    color: #ef4444;
+    background: rgba(239, 68, 68, 0.08);
+}
+.dark .knowledge-tree-file:hover {
+    background: rgba(255,255,255,0.06);
+    color: #eae8e7;
+}
+.dark .knowledge-tree-file.active {
+    background: rgba(22, 119, 255, 0.1);
+    color: #1677ff;
+}
+.knowledge-import-drag-over {
+    outline: 2px dashed rgba(22, 119, 255, 0.55);
+    outline-offset: 4px;
+    border-radius: 14px;
+}
+#knowledge-dialog-card.knowledge-document-dialog {
+    max-width: 760px;
+}
+#knowledge-document-content {
+    min-height: 320px;
+    line-height: 1.55;
+}
+
+/* Graph legend */
+.knowledge-graph-legend {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    font-size: 11px;
+    color: #6b6963;
+    z-index: 10;
+}
+.knowledge-graph-legend-item {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+.knowledge-graph-legend-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+}
+
+/* Graph tooltip */
+.knowledge-graph-tooltip {
+    position: absolute;
+    padding: 6px 10px;
+    background: #fff;
+    border: 1px solid #eae8e7;
+    border-radius: 8px;
+    font-size: 12px;
+    color: #2b2a27;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.15s;
+    z-index: 20;
+}
+.dark .knowledge-graph-tooltip {
+    background: #1f1f1f;
+    border-color: rgba(255,255,255,0.1);
+    color: #eae8e7;
+}
+
+/* Graph node label — the halo keeps it readable where links and nodes crowd */
+.knowledge-graph-label {
+    fill: #4a4844;
+    paint-order: stroke;
+    stroke: rgba(255,255,255,0.9);
+    stroke-width: 3px;
+    stroke-linejoin: round;
+}
+.dark .knowledge-graph-label {
+    fill: #d8d4cf;
+    stroke: rgba(26,26,26,0.9);
+}
+
+/* Config field tooltip */
+.cfg-tip {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    color: #9a9892;
+    cursor: help;
+    font-size: 12px;
+}
+.cfg-tip:hover { color: #6b6963; }
+.dark .cfg-tip:hover { color: #d8d4cf; }
+/* Floating tooltip portal — appended to <body> by JS so it isn't clipped
+   by overflow:hidden ancestors. */
+.cfg-tip-floating {
+    position: fixed;
+    padding: 6px 10px;
+    border-radius: 8px;
+    font-size: 12px;
+    font-weight: 400;
+    line-height: 1.4;
+    white-space: nowrap;
+    background: #1c1b19;
+    color: #eae8e7;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.15s;
+    z-index: 9999;
+}
+.dark .cfg-tip-floating {
+    background: #2b2a27;
+    color: #f9f8f4;
+}
+.cfg-tip-floating.show {
+    opacity: 1;
+}
+
+/* Example cards: equal height via flex stretch + fixed 2-line description area */
+
+/* --------------------------------------------------------------------
+ * Voice pill — compact custom audio player used by mic uploads and TTS
+ * replies. Replaces the bulky native <audio controls> with a play/pause
+ * icon + thin progress bar + duration counter so it blends into chat
+ * bubbles without the chrome-grey browser default look.
+ * ------------------------------------------------------------------ */
+.voice-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 10px;
+    border-radius: 999px;
+    background: rgba(15, 23, 42, 0.05);
+    color: rgb(71, 85, 105);
+    font-size: 12px;
+    line-height: 1;
+    max-width: 240px;
+    user-select: none;
+    cursor: default;
+}
+.dark .voice-pill {
+    background: rgba(255, 255, 255, 0.08);
+    color: rgb(203, 213, 225);
+}
+.voice-pill[data-loading="1"] {
+    opacity: 0.65;
+}
+.voice-pill-btn {
+    width: 22px;
+    height: 22px;
+    border-radius: 999px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--color-primary-500, #2563eb);
+    color: #fff;
+    flex-shrink: 0;
+    cursor: pointer;
+    transition: transform 0.1s ease;
+}
+.voice-pill-btn:hover { transform: scale(1.05); }
+.voice-pill-btn i { font-size: 9px; margin-left: 1px; }
+.voice-pill-btn[data-state="play"] i { margin-left: 2px; }
+.voice-pill-btn[data-state="pause"] i { margin-left: 0; }
+.voice-pill-track {
+    flex: 1;
+    height: 3px;
+    border-radius: 999px;
+    background: rgba(100, 116, 139, 0.25);
+    overflow: hidden;
+    min-width: 70px;
+}
+.dark .voice-pill-track {
+    background: rgba(148, 163, 184, 0.25);
+}
+.voice-pill-fill {
+    height: 100%;
+    width: 0%;
+    background: var(--color-primary-500, #2563eb);
+    border-radius: inherit;
+    transition: width 0.1s linear;
+}
+.voice-pill-time {
+    font-variant-numeric: tabular-nums;
+    font-size: 11px;
+    color: inherit;
+    opacity: 0.75;
+    flex-shrink: 0;
+    min-width: 28px;
+    text-align: right;
+}
+.voice-pill audio { display: none; }
+
+/* Send button toggles into a Stop button while an SSE stream is in flight.
+   Match the look of the disabled send button (light grey block + white
+   glyph) so it reads as the same visual element, just paused/idle from
+   sending perspective and clickable to stop. */
+#send-btn.send-btn-cancel {
+    background-color: rgb(216 212 207) !important; /* slate-300, == disabled send-btn */
+    color: white !important;
+}
+#send-btn.send-btn-cancel:hover {
+    background-color: rgb(148 163 184) !important; /* slate-400 */
+}
+#send-btn.send-btn-cancel:disabled {
+    background-color: rgb(226 232 240) !important; /* slate-200, while stop is in flight */
+    color: white !important;
+    cursor: progress;
+}
+.dark #send-btn.send-btn-cancel {
+    background-color: rgb(71 85 105) !important; /* slate-600, == dark disabled send-btn */
+    color: white !important;
+}
+.dark #send-btn.send-btn-cancel:hover {
+    background-color: rgb(100 116 139) !important; /* slate-500 */
+}
+.dark #send-btn.send-btn-cancel:disabled {
+    background-color: rgb(51 65 85) !important; /* slate-700 */
+    color: rgb(216 212 207) !important;
+}
+
+.agent-cancelled-tag {
+    font-style: italic;
+}
+
+/* =====================================================================
+   Code Block Enhancements
+   ===================================================================== */
+.code-block-wrapper {
+    position: relative;
+    margin: 1em 0;
+    border-radius: 8px;
+    overflow: hidden;
+    background: #f8f9fa;
+    border: 1px solid #eae8e7;
+}
+
+.dark .code-block-wrapper {
+    background: #1c1b19;
+    border-color: #2b2a27;
+}
+
+.code-block-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.5em 1em;
+    background: #eae8e7;
+    border-bottom: 1px solid #d8d4cf;
+    font-size: 0.85em;
+}
+
+.dark .code-block-header {
+    background: #0f172a;
+    border-bottom-color: #2b2a27;
+}
+
+.code-block-lang {
+    color: #6b6963;
+    font-weight: 500;
+    text-transform: lowercase;
+}
+
+.dark .code-block-lang {
+    color: #9a9892;
+}
+
+.code-copy-btn {
+    background: transparent;
+    border: none;
+    color: #6b6963;
+    cursor: pointer;
+    padding: 0.25em 0.5em;
+    border-radius: 4px;
+    transition: all 0.2s;
+    font-size: 0.9em;
+}
+
+.code-copy-btn:hover {
+    background: rgba(100, 116, 139, 0.1);
+    color: #4a4844;
+}
+
+.dark .code-copy-btn {
+    color: #9a9892;
+}
+
+.dark .code-copy-btn:hover {
+    background: rgba(148, 163, 184, 0.1);
+    color: #d8d4cf;
+}
+
+.code-block-wrapper pre {
+    margin: 0;
+    border-radius: 0;
+    border: none;
+}
+
+/* =====================================================================
+   Drag and Drop Overlay
+   ===================================================================== */
+/* Anchor the absolutely-positioned overlay to the chat view. */
+#view-chat {
+    position: relative;
+}
+
+.drag-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(59, 130, 246, 0.1);
+    backdrop-filter: blur(2px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 9999;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.2s;
+}
+
+.drag-overlay.active {
+    opacity: 1;
+}
+
+.drag-overlay.hidden {
+    display: none;
+}
+
+.drag-overlay-content {
+    background: white;
+    border: 3px dashed #3b82f6;
+    border-radius: 16px;
+    padding: 3em 4em;
+    text-align: center;
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+    animation: bounce 1s ease infinite;
+}
+
+.dark .drag-overlay-content {
+    background: #1c1b19;
+    border-color: #60a5fa;
+}
+
+.drag-overlay-content i {
+    font-size: 4em;
+    color: #3b82f6;
+    margin-bottom: 0.5em;
+}
+
+.dark .drag-overlay-content i {
+    color: #60a5fa;
+}
+
+.drag-overlay-content p {
+    font-size: 1.5em;
+    font-weight: 600;
+    color: #1c1b19;
+    margin: 0;
+}
+
+.dark .drag-overlay-content p {
+    color: #f9f8f4;
+}
+
+@keyframes bounce {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-10px); }
+}
+
+/* =====================================================================
+   Message Action Buttons
+   ===================================================================== */
+.edit-msg-btn,
+.delete-msg-btn,
+.regenerate-msg-btn {
+    opacity: 0;
+    transition: opacity 0.2s, color 0.2s;
+}
+
+.user-message-group:hover .edit-msg-btn,
+.user-message-group:hover .delete-msg-btn,
+.bot-message-group:hover .regenerate-msg-btn {
+    opacity: 1;
+}
+
+.edit-msg-btn:hover,
+.regenerate-msg-btn:hover {
+    color: #3b82f6 !important;
+}
+
+.delete-msg-btn:hover {
+    color: #ef4444 !important;
+}
+
+.edit-msg-btn:disabled,
+.delete-msg-btn:disabled {
+    cursor: not-allowed !important;
+    opacity: 0.35 !important;
+}
+
+/* =====================================================================
+   Workspace Panel (preview + file manager)
+   ===================================================================== */
+.workspace-panel {
+    position: relative;
+    flex-shrink: 0;
+    width: 420px;
+    min-width: 280px;
+    max-width: 70vw;
+    height: 100%;
+    display: flex;
+    background: #ffffff;
+    border-left: 1px solid #eae8e7;
+}
+.dark .workspace-panel {
+    background: #1f1f1f;
+    border-left-color: rgba(255, 255, 255, 0.08);
+}
+.workspace-panel.hidden { display: none; }
+
+.workspace-inner {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+}
+
+.workspace-resizer {
+    position: absolute;
+    left: -3px;
+    top: 0;
+    bottom: 0;
+    width: 6px;
+    cursor: col-resize;
+    z-index: 20;
+}
+.workspace-resizer:hover,
+.workspace-resizer.dragging { background: rgba(22, 119, 255, 0.35); }
+
+.workspace-header {
+    height: 48px;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    padding: 0 8px 0 10px;
+    border-bottom: 1px solid #eae8e7;
+}
+.dark .workspace-header { border-bottom-color: rgba(255, 255, 255, 0.08); }
+
+.workspace-tabs { display: flex; gap: 2px; }
+
+.workspace-header-actions { display: flex; align-items: center; gap: 2px; }
+
+.workspace-body {
+    display: none;
+    flex: 1;
+    min-height: 0;
+    flex-direction: column;
+}
+.workspace-body.active { display: flex; }
+
+.workspace-file-title {
+    flex-shrink: 0;
+    padding: 8px 12px;
+    font-size: 12px;
+    color: #6b6963;
+    border-bottom: 1px solid #f9f8f4;
+    word-break: break-all;
+    font-family: ui-monospace, SFMono-Regular, 'SF Mono', Menlo, monospace;
+}
+.workspace-file-title.hidden { display: none; }
+.dark .workspace-file-title { color: #9a9892; border-bottom-color: rgba(255, 255, 255, 0.06); }
+
+.workspace-preview-content {
+    flex: 1;
+    min-height: 0;
+    overflow: auto;
+    position: relative;
+}
+.workspace-preview-content iframe {
+    width: 100%;
+    height: 100%;
+    border: 0;
+    display: block;
+    background: #fff;
+}
+.workspace-preview-content .ws-pad { padding: 16px; }
+.workspace-preview-content img.ws-media,
+.workspace-preview-content video.ws-media {
+    max-width: 100%;
+    display: block;
+    margin: 0 auto;
+    border-radius: 8px;
+}
+.workspace-preview-content audio.ws-media { width: 100%; margin-top: 12px; }
+.workspace-preview-content pre {
+    margin: 0;
+    padding: 16px;
+    font-size: 12.5px;
+    line-height: 1.6;
+    white-space: pre;
+    overflow: auto;
+}
+
+.workspace-empty {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    color: #9a9892;
+    font-size: 13px;
+    padding: 24px;
+    text-align: center;
+}
+.workspace-empty i { font-size: 26px; opacity: 0.4; }
+
+/* Files tab */
+.workspace-files-toolbar {
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 10px;
+}
+.workspace-search {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 0 10px;
+    height: 32px;
+    border-radius: 8px;
+    background: #f9f8f4;
+}
+.workspace-search i { font-size: 11px; color: #9a9892; }
+.workspace-search input {
+    flex: 1;
+    min-width: 0;
+    background: transparent;
+    border: 0;
+    outline: none;
+    font-size: 13px;
+    color: #2b2a27;
+}
+.dark .workspace-search { background: rgba(255, 255, 255, 0.06); }
+.dark .workspace-search input { color: #eae8e7; }
+
+.workspace-breadcrumb {
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 2px;
+    padding: 0 12px 8px;
+    font-size: 12px;
+    color: #9a9892;
+}
+.workspace-breadcrumb .crumb { cursor: pointer; border-radius: 4px; padding: 1px 4px; display: inline-flex; align-items: center; gap: 5px; min-width: 0; }
+.workspace-breadcrumb .crumb:hover { background: #f9f8f4; color: #2b2a27; }
+.dark .workspace-breadcrumb .crumb:hover { background: rgba(255, 255, 255, 0.08); color: #eae8e7; }
+.workspace-breadcrumb .sep { opacity: 0.5; }
+.workspace-breadcrumb .crumb-root {
+    max-width: 240px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    direction: rtl;         /* keep the meaningful tail (project name) visible */
+    text-align: left;
+    font-size: 11px;
+    opacity: 0.9;
+}
+
+.workspace-file-list {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    padding: 0 6px 12px;
+}
+.ws-file-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 7px 8px;
+    border-radius: 8px;
+    cursor: pointer;
+    user-select: none;
+    transition: background 0.12s ease;
+}
+.ws-file-row:hover { background: #f9f8f4; }
+.dark .ws-file-row:hover { background: rgba(255, 255, 255, 0.06); }
+.ws-file-row.active { background: #e6f4ff; }
+.dark .ws-file-row.active { background: rgba(22, 119, 255, 0.12); }
+.ws-file-row > i {
+    width: 16px;
+    text-align: center;
+    font-size: 13px;
+    flex-shrink: 0;
+}
+.ws-file-name {
+    flex: 1;
+    min-width: 0;
+    font-size: 13px;
+    color: #2b2a27;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.dark .ws-file-name { color: #eae8e7; }
+.ws-file-meta {
+    flex-shrink: 0;
+    font-size: 11px;
+    color: #9a9892;
+}
+.ws-file-path {
+    font-size: 11px;
+    color: #9a9892;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* File icon colors by kind */
+.ws-icon-directory { color: #f59e0b; }
+.ws-icon-html { color: #f97316; }
+.ws-icon-markdown { color: #6366f1; }
+.ws-icon-image { color: #10b981; }
+.ws-icon-video { color: #ec4899; }
+.ws-icon-audio { color: #8b5cf6; }
+.ws-icon-pdf { color: #ef4444; }
+.ws-icon-csv { color: #14b8a6; }
+.ws-icon-code { color: #3b82f6; }
+.ws-icon-office { color: #2563eb; }
+.ws-icon-text,
+.ws-icon-file { color: #9a9892; }
+
+/* =====================================================================
+   Artifact / File Cards in messages
+   ===================================================================== */
+.file-card-list {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin: 10px 0;
+}
+.file-card {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    max-width: 100%;
+    padding: 9px 12px;
+    border-radius: 10px;
+    border: 1px solid #eae8e7;
+    background: #fff;
+    cursor: pointer;
+    transition: border-color 0.15s ease, box-shadow 0.15s ease, transform 0.15s ease;
+}
+.file-card:hover {
+    border-color: #1677ff;
+    box-shadow: 0 2px 10px -2px rgba(22, 119, 255, 0.25);
+}
+.dark .file-card { background: #232323; border-color: rgba(255, 255, 255, 0.1); }
+.dark .file-card:hover { border-color: #1677ff; }
+.file-card > i.file-card-icon { font-size: 16px; flex-shrink: 0; }
+.file-card-info { min-width: 0; flex: 1; }
+.file-card-name {
+    font-size: 13px;
+    font-weight: 500;
+    color: #2b2a27;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.dark .file-card-name { color: #eae8e7; }
+.file-card-sub {
+    font-size: 11px;
+    color: #9a9892;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.file-card-actions { display: flex; gap: 2px; flex-shrink: 0; }
+.file-card-btn {
+    width: 26px;
+    height: 26px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 6px;
+    font-size: 11px;
+    color: #9a9892;
+    cursor: pointer;
+    transition: background 0.12s ease, color 0.12s ease;
+}
+.file-card-btn:hover { background: #f9f8f4; color: #2b2a27; }
+.dark .file-card-btn:hover { background: rgba(255, 255, 255, 0.08); color: #eae8e7; }
+
+/* Inline path chip (fallback for paths mentioned only in text) */
+.file-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 1px 7px;
+    margin: 0 1px;
+    border-radius: 6px;
+    background: #f9f8f4;
+    border: 1px solid #eae8e7;
+    font-size: 0.88em;
+    color: #2b2a27;
+    cursor: pointer;
+    vertical-align: baseline;
+    text-decoration: none;
+}
+.file-chip:hover { border-color: #1677ff; color: #003eb3; }
+.file-chip i { font-size: 0.85em; opacity: 0.7; }
+.dark .file-chip { background: rgba(255, 255, 255, 0.06); border-color: rgba(255, 255, 255, 0.1); color: #eae8e7; }
+.dark .file-chip:hover { border-color: #1677ff; color: #1677ff; }
+
+/* =====================================================================
+   Mention (@) menu
+   ===================================================================== */
+.mention-menu {
+    position: absolute;
+    bottom: calc(100% + 6px);
+    left: 0;
+    right: 0;
+    max-height: 300px;
+    overflow-y: auto;
+    background: #fff;
+    border: 1px solid #eae8e7;
+    border-radius: 12px;
+    box-shadow: 0 8px 30px -6px rgba(0, 0, 0, 0.1), 0 2px 8px -2px rgba(0, 0, 0, 0.04);
+    z-index: 50;
+    padding: 4px;
+    animation: slashMenuIn 0.15s ease-out;
+}
+.mention-menu.hidden { display: none; }
+.dark .mention-menu {
+    background: #1f1f1f;
+    border-color: rgba(255, 255, 255, 0.1);
+    box-shadow: 0 8px 30px -6px rgba(0, 0, 0, 0.35), 0 2px 8px -2px rgba(0, 0, 0, 0.15);
+}
+.mention-item {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    padding: 7px 10px;
+    border-radius: 8px;
+    cursor: pointer;
+}
+.mention-item:hover,
+.mention-item.active { background: #e6f4ff; }
+.dark .mention-item:hover,
+.dark .mention-item.active { background: rgba(22, 119, 255, 0.1); }
+.mention-item > i { width: 15px; text-align: center; font-size: 12px; flex-shrink: 0; }
+.mention-item .m-name {
+    font-size: 13px;
+    color: #2b2a27;
+    flex-shrink: 0;
+    max-width: 45%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.dark .mention-item .m-name { color: #eae8e7; }
+.mention-item .m-path {
+    font-size: 11px;
+    color: #9a9892;
+    flex: 1;
+    min-width: 0;
+    text-align: right;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    direction: rtl;
+}
+.mention-empty { padding: 10px; font-size: 12px; color: #9a9892; text-align: center; }
+
+/* Drop target highlight when dragging a workspace file into the chat */
+.chat-main.ws-drop-active::after {
+    content: '';
+    position: absolute;
+    inset: 8px;
+    border: 2px dashed #1677ff;
+    border-radius: 14px;
+    background: rgba(22, 119, 255, 0.06);
+    pointer-events: none;
+    z-index: 30;
+}
+
+/* Mobile: workspace panel takes over the chat view */
+@media (max-width: 768px) {
+    .workspace-panel {
+        position: absolute;
+        inset: 0;
+        width: 100% !important;
+        max-width: none;
+        z-index: 46;
+    }
+    .workspace-resizer { display: none; }
+}
+
+/* ==========================================================================
+   Sidebar ambient light + liquid glass
+   --------------------------------------------------------------------------
+   The sidebar is a translucent frosted pane (backdrop-filter). To make the
+   refraction from the SVG displacement filter visible, a soft ambient gradient
+   sits behind it; `.sidebar-glass` is the blur() fallback for engines that do
+   not support `backdrop-filter: url()` (the inline url() takes over in
+   Chromium). Adapted from shuding/liquid-glass (MIT).
+   ========================================================================== */
+.sidebar-ambient {
+    background:
+        radial-gradient(120% 40% at 12% 6%, rgba(22, 119, 255, 0.32), transparent 60%),
+        radial-gradient(130% 36% at 108% 42%, rgba(22, 119, 255, 0.22), transparent 62%),
+        radial-gradient(120% 42% at 20% 92%, rgba(105, 177, 255, 0.26), transparent 62%);
+}
+.dark .sidebar-ambient {
+    background:
+        radial-gradient(120% 40% at 12% 6%, rgba(64, 150, 255, 0.45), transparent 60%),
+        radial-gradient(130% 36% at 108% 42%, rgba(22, 119, 255, 0.4), transparent 62%),
+        radial-gradient(120% 42% at 20% 92%, rgba(105, 177, 255, 0.34), transparent 62%);
+}
+.sidebar-glass {
+    backdrop-filter: blur(12px) saturate(160%);
+    -webkit-backdrop-filter: blur(12px) saturate(160%);
+}
+
+/* ==========================================================================
+   Liquid-glass chat bubbles (see LiquidGlass.tsx GlassSurface)
+   --------------------------------------------------------------------------
+   `.glass-surface` is the blur() fallback; Chromium layers the inline
+   `backdrop-filter: url(#filter)` on top. `.chat-ambient` gives the message
+   area a soft gradient backdrop so the bubble refraction is visible.
+   ========================================================================== */
+.glass-surface {
+    backdrop-filter: blur(14px) saturate(150%);
+    -webkit-backdrop-filter: blur(14px) saturate(150%);
+}
+.chat-ambient {
+    background:
+        radial-gradient(60% 40% at 15% 0%, rgba(22, 119, 255, 0.1), transparent 70%),
+        radial-gradient(50% 45% at 100% 100%, rgba(105, 177, 255, 0.12), transparent 70%);
+}
+.dark .chat-ambient {
+    background:
+        radial-gradient(60% 40% at 15% 0%, rgba(64, 150, 255, 0.14), transparent 70%),
+        radial-gradient(50% 45% at 100% 100%, rgba(22, 119, 255, 0.16), transparent 70%);
+}

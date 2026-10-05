@@ -1,0 +1,40 @@
+# Keep the Docker build context lean.
+
+# VCS / IDE
+.git
+.gitattributes
+.gitignore
+.idea
+.vscode
+.settings
+
+# Frontend deps / build output
+web/node_modules
+web/dist
+web/dist-ssr
+**/*.tsbuildinfo
+
+# Go / build output
+dist
+gopheragent
+gopheragent.exe
+main
+main.exe
+output
+manifest/output
+temp
+temp.yaml
+
+# Runtime data
+gopher_agent.db
+gopher_agent.db-shm
+gopher_agent.db-wal
+uploads
+workspace
+
+# Local env / logs
+.env.local
+.env.*.local
+*.log
+npm-debug.log*
+tmp_read.py

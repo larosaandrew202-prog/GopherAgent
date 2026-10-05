@@ -1,0 +1,34 @@
+<!doctype html>
+<html lang="zh" class="dark">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Gopher Agent Console</title>
+    <link rel="icon" href="/assets/favicon.svg?v=2" type="image/svg+xml" />
+    <meta name="theme-color" content="#1677FF" />
+
+    <!-- Vendored third-party assets. -->
+    <link rel="stylesheet" href="/assets/vendor/fonts/inter/inter.css" />
+
+    <!-- highlight.js themes: light is enabled for the light theme. -->
+    <link id="hljs-light" rel="stylesheet" href="/assets/vendor/highlightjs/styles/github.min.css" disabled />
+    <link id="hljs-dark" rel="stylesheet" href="/assets/vendor/highlightjs/styles/github-dark.min.css" />
+
+    <!-- Apply theme before first paint to avoid a flash of the wrong theme. -->
+    <script>
+      (function () {
+        try {
+          var theme = localStorage.getItem('cow_theme') || 'dark';
+          if (theme === 'dark') document.documentElement.classList.add('dark');
+          else document.documentElement.classList.remove('dark');
+          var lang = localStorage.getItem('cow_lang');
+          if (lang) document.documentElement.setAttribute('lang', lang);
+        } catch (e) {}
+      })();
+    </script>
+  </head>
+  <body class="h-screen overflow-hidden bg-[#f9f8f4] dark:bg-[#141414] text-[#141413] dark:text-white/85 font-sans">
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>
