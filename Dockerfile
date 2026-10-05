@@ -41,6 +41,9 @@ RUN rm -f .env.local .env.*.local \
 FROM ubuntu:${UBUNTU_VERSION} AS go-builder
 ARG GO_VERSION=1.25.3
 ARG VERSION=dev
+# China-friendly module proxy by default; override with
+#   --build-arg GOPROXY=https://proxy.golang.org,direct
+ARG GOPROXY=https://goproxy.cn,direct
 ENV DEBIAN_FRONTEND=noninteractive
 RUN apt-get update \
  && apt-get install -y --no-install-recommends ca-certificates curl \
@@ -52,7 +55,10 @@ RUN apt-get update \
 ENV PATH="/usr/local/go/bin:${PATH}" \
     GOPATH=/go \
     GOCACHE=/go/cache \
-    CGO_ENABLED=0
+    CGO_ENABLED=0 \
+    GOPROXY=${GOPROXY} \
+    GOSUMDB=sum.golang.org \
+    GOTOOLCHAIN=local
 
 WORKDIR /src
 COPY go.mod go.sum ./
