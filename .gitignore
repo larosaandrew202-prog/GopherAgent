@@ -16,7 +16,8 @@ manifest/output/
 temp/
 temp.yaml
 bin
-**/config/config.yaml
+# GoFrame CLI tool config (not the app's manifest/config/config.yaml)
+hack/config.yaml
 # Runtime data
 gopher_agent.db
 gopher_agent.db-shm
