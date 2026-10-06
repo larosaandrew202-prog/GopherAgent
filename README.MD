@@ -1,8 +1,10 @@
 # GopherAgent
 
-基于 [GoFrame v2](https://goframe.org/) 的 Agent 后端，对外提供一套 HTTP API；
-控制台位于本仓库 [`web/`](./web)（React + Vite + Ant Design）。
-前后端分离，数据使用 **SQLite** 持久化。
+GopherAgent 是一个可自托管的个人 AI 智能体（Agent）。除了聊天，它还能**主动调用工具**完成任务：
+联网搜索与抓取网页、读写和编辑本机文件、执行命令，并可设定**定时任务**按计划自动执行。
+借助**长期记忆**，它能记住你的偏好与重要决定，在之后的对话中回忆起来。
+支持接入任意 OpenAI 兼容的大模型（DeepSeek、OpenAI、通义、智谱、豆包等），
+会话、模型与配置都可以在内置的网页控制台里管理。
 
 ![GopherAgent 控制台](./image/img.png)
 
