@@ -69,3 +69,30 @@ func TestUnknownTool(t *testing.T) {
 		t.Fatal("expected error for unknown tool")
 	}
 }
+
+func TestImageGenToolRegistered(t *testing.T) {
+	reg := buildDefault()
+	tool, ok := reg.Get("image_gen")
+	if !ok {
+		t.Fatal("image_gen tool not registered")
+	}
+	if tool.Name() != "image_gen" {
+		t.Fatalf("unexpected tool name %q", tool.Name())
+	}
+	if _, ok := reg.Get("image_gen"); !ok {
+		t.Fatal("image_gen missing from registry")
+	}
+}
+
+func TestStrSliceArg(t *testing.T) {
+	if got := strSliceArg(map[string]interface{}{"image": "a.png"}, "image"); len(got) != 1 || got[0] != "a.png" {
+		t.Fatalf("string form = %v", got)
+	}
+	got := strSliceArg(map[string]interface{}{"image": []interface{}{"a.png", "", "b.png"}}, "image")
+	if len(got) != 2 || got[0] != "a.png" || got[1] != "b.png" {
+		t.Fatalf("array form = %v", got)
+	}
+	if got := strSliceArg(map[string]interface{}{}, "image"); got != nil {
+		t.Fatalf("missing = %v", got)
+	}
+}

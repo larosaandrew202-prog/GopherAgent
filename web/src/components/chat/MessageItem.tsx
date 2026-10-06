@@ -1,6 +1,7 @@
 import { AppIcon } from '@/components/ui/AppIcon';
 import { Button, Tooltip } from 'antd';
 import type { ChatMessage } from '@/api/types';
+import { backendUrl } from '@/api/client';
 import { BrandMark } from '@/components/ui/BrandMark';
 import { GlassSurface } from '@/components/ui/LiquidGlass';
 import { useChat } from '@/store/chat';
@@ -10,6 +11,24 @@ import { useWorkspace } from '@/store/workspace';
 import { classNames, formatTime } from '@/lib/format';
 import { Markdown } from './Markdown';
 import { ToolSteps } from './ToolSteps';
+
+/** Normalise an image path/URL to a comparable workspace-relative key. */
+function mediaKey(value: string): string {
+  let u = (value || '').trim();
+  const q = u.match(/[?&]path=([^&]+)/i);
+  if (q) u = decodeURIComponent(q[1]);
+  u = u.replace(/^https?:\/\/[^/]+/i, '');
+  return u.replace(/\\/g, '/').replace(/^\/+/, '').toLowerCase();
+}
+
+/** Workspace image paths already embedded in a message's markdown. */
+function embeddedImageKeys(content: string): Set<string> {
+  const keys = new Set<string>();
+  const re = /!\[[^\]]*\]\(\s*([^)\s]+)/g;
+  let m: RegExpExecArray | null;
+  while ((m = re.exec(content))) keys.add(mediaKey(m[1]));
+  return keys;
+}
 
 function UserAttachments({ message }: { message: ChatMessage }) {
   const { openPreview } = useWorkspace();
@@ -118,6 +137,13 @@ export function AssistantMessage({
   const { t } = useI18n();
   const { openPreview } = useWorkspace();
   const hasBody = message.content || message.steps?.length || streaming;
+  // Skip gallery images that the reply already embeds in its markdown, so the
+  // same generated picture is never shown twice.
+  const embedded = embeddedImageKeys(message.content || '');
+  const media = (message.media ?? []).filter((m) => {
+    const key = mediaKey(m.path || m.url || '');
+    return !key || !embedded.has(key);
+  });
   return (
     <div className="flex gap-3 px-4 sm:px-6 py-3 bot-message-group">
       <BrandMark className="w-8 h-8" />
@@ -160,6 +186,37 @@ export function AssistantMessage({
             </div>
           ) : null}
         </div>
+        {media.length ? (
+          <div className="assistant-media">
+            {media.map((m, i) => {
+              const src = backendUrl(m.url ?? '');
+              if (!src) return null;
+              if (m.type === 'image') {
+                return (
+                  <a key={i} href={src} target="_blank" rel="noopener noreferrer">
+                    <img
+                      src={src}
+                      alt={m.name || 'generated image'}
+                      className="assistant-media-img"
+                    />
+                  </a>
+                );
+              }
+              return (
+                <a
+                  key={i}
+                  href={src}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="assistant-media-file"
+                >
+                  <AppIcon className="fas fa-file-lines mr-1" />
+                  {m.name || 'file'}
+                </a>
+              );
+            })}
+          </div>
+        ) : null}
         {message.attachments?.length ? (
           <div className="mt-2 flex flex-wrap gap-2">
             {message.attachments.map((att, i) => (

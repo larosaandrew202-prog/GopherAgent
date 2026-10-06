@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef } from 'react';
 import { renderMarkdown } from '@/lib/markdown';
+import { backendUrl } from '@/api/client';
 import { classNames } from '@/lib/format';
 
 /** Renders markdown and enhances each code block with a language label and
@@ -11,6 +12,21 @@ export function Markdown({ content, className = '' }: { content: string; classNa
   useEffect(() => {
     const root = ref.current;
     if (!root) return;
+    // Rewrite image URLs so they resolve against the backend even when the
+    // console is served from a different origin (dev), and so that bare
+    // workspace-relative paths emitted by the model still render.
+    root.querySelectorAll('img').forEach((img) => {
+      const src = img.getAttribute('src') ?? '';
+      if (!src || /^(https?:|data:|blob:)/i.test(src)) return;
+      if (src.startsWith('/api/')) {
+        img.setAttribute('src', backendUrl(src));
+        return;
+      }
+      if (/\.(png|jpe?g|gif|webp|bmp|svg)(\?.*)?$/i.test(src)) {
+        const rel = src.replace(/^\.?\/*/, '');
+        img.setAttribute('src', backendUrl(`/api/media?path=${encodeURIComponent(rel)}`));
+      }
+    });
     root.querySelectorAll('pre').forEach((pre) => {
       if (pre.parentElement?.classList.contains('code-block-wrapper')) return;
       const codeEl = pre.querySelector('code');

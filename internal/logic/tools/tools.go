@@ -103,6 +103,48 @@ func (r *Registry) Execute(ctx context.Context, name, argsJSON string, ec ExecCo
 	return truncate(out, maxToolOutput), nil
 }
 
+// Media describes a generated artifact a tool wants surfaced to the console.
+type Media struct {
+	Path string // workspace-relative path
+	Type string // consts.MediaTypeImage / MediaTypeVideo
+	MIME string
+	URL  string
+}
+
+// RichResult is a tool result that may carry media alongside its text output.
+type RichResult struct {
+	Output string
+	Media  []Media
+}
+
+// RichTool is implemented by tools that produce structured media (e.g. images).
+type RichTool interface {
+	Tool
+	ExecuteRich(ctx context.Context, args map[string]interface{}, ec ExecContext) (RichResult, error)
+}
+
+// ExecuteFull runs a tool, returning structured media when the tool supports it
+// and otherwise falling back to the plain string result.
+func (r *Registry) ExecuteFull(ctx context.Context, name, argsJSON string, ec ExecContext) (RichResult, error) {
+	tool, ok := r.Get(name)
+	if !ok {
+		return RichResult{}, fmt.Errorf("unknown tool: %s", name)
+	}
+	args := map[string]interface{}{}
+	if strings.TrimSpace(argsJSON) != "" {
+		if err := json.Unmarshal([]byte(argsJSON), &args); err != nil {
+			return RichResult{}, fmt.Errorf("invalid arguments for %s: %w", name, err)
+		}
+	}
+	if rt, ok := tool.(RichTool); ok {
+		res, err := rt.ExecuteRich(ctx, args, ec)
+		res.Output = truncate(res.Output, maxToolOutput)
+		return res, err
+	}
+	out, err := tool.Execute(ctx, args, ec)
+	return RichResult{Output: truncate(out, maxToolOutput)}, err
+}
+
 const maxToolOutput = 20000
 
 func truncate(s string, limit int) string {

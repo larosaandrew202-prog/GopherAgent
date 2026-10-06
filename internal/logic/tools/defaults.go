@@ -15,6 +15,7 @@ func buildDefault() *Registry {
 	r.Register(MemorySearchTool{})
 	r.Register(MemoryGetTool{})
 	r.Register(SchedulerTool{})
+	r.Register(ImageGenTool{})
 	return r
 }
 

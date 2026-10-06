@@ -39,6 +39,15 @@ export interface Attachment {
   _uploading?: boolean;
 }
 
+/** Media produced by tools (e.g. generated images) and surfaced in the chat. */
+export interface MediaItem {
+  type: 'image' | 'video' | 'file';
+  url?: string;
+  path?: string;
+  name?: string;
+  mime?: string;
+}
+
 export interface ToolCall {
   id?: string;
   name: string;
@@ -95,6 +104,7 @@ export interface ChatMessage {
   steps?: ToolStep[];
   thinking?: string;
   attachments?: Attachment[];
+  media?: MediaItem[];
   audioUrl?: string;
   /** Local-only marker used to render the "context cleared" divider. */
   divider?: boolean;
@@ -249,6 +259,17 @@ export interface AppConfig {
   permission_modes?: PermissionMode[];
   agent_permission_mode?: PermissionMode;
   web_password_masked?: string;
+  image_enabled?: boolean;
+  image_provider?: string;
+  image_model?: string;
+  image_size?: string;
+  image_quality?: string;
+  image_max_per_call?: number;
+  image_timeout_sec?: number;
+  image_fallback?: boolean;
+  image_output_dir?: string;
+  image_api_base?: string;
+  image_api_key_masked?: string;
   [key: string]: unknown;
 }
 

@@ -21,6 +21,8 @@ const (
 	EventStreamEnd = "stream_end"
 	EventError     = "error"
 	EventCancelled = "cancelled"
+	// EventToolMedia carries generated media (e.g. images) produced by a tool.
+	EventToolMedia = "tool_media"
 )
 
 // Built-in agent tool names.
@@ -35,6 +37,7 @@ const (
 	ToolMemorySearch = "memory_search"
 	ToolMemoryGet    = "memory_get"
 	ToolScheduler    = "scheduler"
+	ToolImageGen     = "image_gen"
 )
 
 // Scheduled task schedule types.
@@ -83,6 +86,12 @@ const ToolChoiceAuto = "auto"
 
 // Attachment kinds surfaced to the model / console.
 const AttachmentKindFile = "file"
+
+// Media kinds produced by tools and surfaced to the console.
+const (
+	MediaTypeImage = "image"
+	MediaTypeVideo = "video"
+)
 
 // Runtime data directory names (relative to the data root).
 const DirUploads = "uploads"
@@ -183,6 +192,21 @@ const (
 	CfgMemoryFlushTurns    = "memory_flush_turns"
 	CfgMemoryChunkTokens   = "memory_chunk_tokens"
 	CfgMemoryChunkOverlap  = "memory_chunk_overlap"
+)
+
+// Image generation configuration keys.
+const (
+	CfgImageEnabled    = "image_enabled"
+	CfgImageProvider   = "image_provider"
+	CfgImageModel      = "image_model"
+	CfgImageAPIKey     = "image_api_key"
+	CfgImageAPIBase    = "image_api_base"
+	CfgImageSize       = "image_size"
+	CfgImageQuality    = "image_quality"
+	CfgImageMaxPerCall = "image_max_per_call"
+	CfgImageTimeoutSec = "image_timeout_sec"
+	CfgImageFallback   = "image_fallback"
+	CfgImageOutputDir  = "image_output_dir"
 )
 
 // Memory chunk scopes and sources.

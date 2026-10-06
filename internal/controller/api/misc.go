@@ -14,6 +14,7 @@ import (
 	"GopherAgent/internal/consts"
 	configlogic "GopherAgent/internal/logic/config"
 	memorylogic "GopherAgent/internal/logic/memory"
+	"GopherAgent/internal/logic/paths"
 	"GopherAgent/internal/logic/scheduler"
 	"GopherAgent/internal/logic/schedulerrun"
 	toolkit "GopherAgent/internal/logic/tools"
@@ -119,6 +120,8 @@ func toolIcon(name string) string {
 		return "fa-brain"
 	case consts.ToolScheduler:
 		return "fa-clock"
+	case consts.ToolImageGen:
+		return "fa-image"
 	default:
 		return "fa-wrench"
 	}
@@ -473,4 +476,39 @@ func ServeFile(r *ghttp.Request) {
 		return
 	}
 	r.Response.ServeFile(path)
+}
+
+// ServeMedia serves a generated media file confined to the agent workspace.
+// Unlike ServeFile it rejects any path that escapes the workspace.
+func ServeMedia(r *ghttp.Request) {
+	if !requireAuth(r) {
+		return
+	}
+	rel := strings.TrimSpace(r.Get("path").String())
+	if rel == "" {
+		r.Response.WriteStatus(400)
+		return
+	}
+	ws := paths.Workspace()
+	absWS, err := filepath.Abs(ws)
+	if err != nil {
+		r.Response.WriteStatus(500)
+		return
+	}
+	absFull, err := filepath.Abs(filepath.Join(absWS, filepath.FromSlash(rel)))
+	if err != nil {
+		r.Response.WriteStatus(400)
+		return
+	}
+	relCheck, err := filepath.Rel(absWS, absFull)
+	if err != nil || relCheck == ".." || strings.HasPrefix(relCheck, ".."+string(filepath.Separator)) {
+		r.Response.WriteStatus(403)
+		return
+	}
+	info, err := os.Stat(absFull)
+	if err != nil || info.IsDir() {
+		r.Response.WriteStatus(404)
+		return
+	}
+	r.Response.ServeFile(absFull)
 }
