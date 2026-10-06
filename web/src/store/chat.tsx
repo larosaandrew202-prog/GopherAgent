@@ -239,9 +239,15 @@ export function ChatProvider({ children }: { children: ReactNode }) {
             name: (event.name as string) ?? (event.file_name as string),
           });
           break;
-        case 'done':
-          finalizeStream(sid, (event.content as string) ?? '');
+        case 'done': {
+          // The backend sends the authoritative final text with only the images
+          // generated in this turn. Use it so any stale image the model echoed
+          // from history disappears once the turn completes.
+          const finalText = (event.content as string) ?? '';
+          if (finalText) buf.content = finalText;
+          finalizeStream(sid, buf.content);
           return;
+        }
         case 'cancelled':
           finalizeStream(sid, buf.content || t('tip_cancelled'));
           return;

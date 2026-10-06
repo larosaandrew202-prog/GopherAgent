@@ -7,6 +7,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"regexp"
 	"strings"
 	"sync"
 	"time"
@@ -231,14 +232,14 @@ func runAgentLoop(ctx context.Context, sessionID string, session *Session, pub p
 		}
 
 		if len(result.ToolCalls) == 0 {
-			content := result.Content
+			// Remove any workspace-image markdown the model copied from earlier
+			// turns, then append exactly the images generated this turn. The
+			// reply therefore only ever shows the current result.
+			content := stripWorkspaceImages(result.Content)
 			var links []string
 			for _, m := range generatedMedia {
 				if m.Type != consts.MediaTypeImage || m.URL == "" {
 					continue
-				}
-				if m.Path != "" && strings.Contains(content, m.Path) {
-					continue // the model already embedded this image
 				}
 				links = append(links, fmt.Sprintf("![image](%s)", m.URL))
 			}
@@ -316,6 +317,48 @@ func mediaPayload(media []tools.Media) []map[string]interface{} {
 	return out
 }
 
+var (
+	imageMdRe  = regexp.MustCompile(`!\[[^\]]*\]\(([^)]*)\)`)
+	imageExtRe = regexp.MustCompile(`(?i)\.(png|jpe?g|gif|webp|bmp|svg)(\?.*)?$`)
+)
+
+// isWorkspaceMediaURL reports whether a markdown image target points at a
+// generated/local workspace image (as opposed to an external http(s) image).
+func isWorkspaceMediaURL(raw string) bool {
+	u := strings.TrimSpace(raw)
+	if i := strings.IndexAny(u, " \t"); i >= 0 {
+		u = u[:i]
+	}
+	u = strings.Trim(u, "<>")
+	if u == "" {
+		return false
+	}
+	low := strings.ToLower(u)
+	if strings.HasPrefix(low, "http://") || strings.HasPrefix(low, "https://") ||
+		strings.HasPrefix(low, "data:") || strings.HasPrefix(low, "#") {
+		return false
+	}
+	if strings.Contains(low, "/api/media") {
+		return true
+	}
+	return imageExtRe.MatchString(low)
+}
+
+// stripWorkspaceImages removes markdown images referencing generated/local
+// workspace files (external images are kept). It stops the model from
+// re-emitting images produced in earlier turns.
+func stripWorkspaceImages(s string) string {
+	if !strings.Contains(s, "](") {
+		return s
+	}
+	return imageMdRe.ReplaceAllStringFunc(s, func(m string) string {
+		if sub := imageMdRe.FindStringSubmatch(m); len(sub) >= 2 && isWorkspaceMediaURL(sub[1]) {
+			return ""
+		}
+		return m
+	})
+}
+
 // ---------------------------------------------------------------------------
 // helpers
 // ---------------------------------------------------------------------------
@@ -368,7 +411,9 @@ func buildMessages(history []Message) []llm.Message {
 		if role != consts.RoleUser && role != consts.RoleAssistant && role != consts.RoleSystem {
 			role = consts.RoleUser
 		}
-		out = append(out, llm.TextMessage(role, m.Content))
+		// Drop workspace-image markdown from history so the model can never
+		// copy an image link from an earlier turn.
+		out = append(out, llm.TextMessage(role, stripWorkspaceImages(m.Content)))
 	}
 	return out
 }

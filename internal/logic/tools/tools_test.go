@@ -84,6 +84,17 @@ func TestImageGenToolRegistered(t *testing.T) {
 	}
 }
 
+func TestImageFileNameUnique(t *testing.T) {
+	seen := make(map[string]struct{}, 200)
+	for i := 0; i < 200; i++ {
+		n := imageFileName("png")
+		if _, ok := seen[n]; ok {
+			t.Fatalf("duplicate image filename generated: %s", n)
+		}
+		seen[n] = struct{}{}
+	}
+}
+
 func TestStrSliceArg(t *testing.T) {
 	if got := strSliceArg(map[string]interface{}{"image": "a.png"}, "image"); len(got) != 1 || got[0] != "a.png" {
 		t.Fatalf("string form = %v", got)
