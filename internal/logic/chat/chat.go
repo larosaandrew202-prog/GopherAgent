@@ -220,6 +220,7 @@ func runAgentLoop(ctx context.Context, sessionID string, session *Session, pub p
 		maxSteps = 1
 	}
 
+	var generatedMedia []tools.Media
 	for step := 0; step < maxSteps; step++ {
 		opts := sampleOptions()
 		opts.Tools = defs
@@ -230,10 +231,24 @@ func runAgentLoop(ctx context.Context, sessionID string, session *Session, pub p
 		}
 
 		if len(result.ToolCalls) == 0 {
-			if _, err := AppendMessage(dbCtx, sessionID, consts.RoleAssistant, result.Content, ""); err != nil {
+			content := result.Content
+			var links []string
+			for _, m := range generatedMedia {
+				if m.Type != consts.MediaTypeImage || m.URL == "" {
+					continue
+				}
+				if m.Path != "" && strings.Contains(content, m.Path) {
+					continue // the model already embedded this image
+				}
+				links = append(links, fmt.Sprintf("![image](%s)", m.URL))
+			}
+			if len(links) > 0 {
+				content = strings.TrimRight(content, "\n") + "\n\n" + strings.Join(links, "\n")
+			}
+			if _, err := AppendMessage(dbCtx, sessionID, consts.RoleAssistant, content, ""); err != nil {
 				return nil, err
 			}
-			return &agentOutcome{Content: result.Content, Model: resolved.Model, Usage: result.Usage}, nil
+			return &agentOutcome{Content: content, Model: resolved.Model, Usage: result.Usage}, nil
 		}
 
 		messages = append(messages, llm.Message{Role: consts.RoleAssistant, ToolCalls: result.ToolCalls})
@@ -251,7 +266,8 @@ func runAgentLoop(ctx context.Context, sessionID string, session *Session, pub p
 				"content":      name,
 			})
 
-			out, execErr := registry.Execute(ctx, name, call.Function.Arguments, execCtx)
+			res, execErr := registry.ExecuteFull(ctx, name, call.Function.Arguments, execCtx)
+			out := res.Output
 			status := consts.ToolStatusDone
 			if execErr != nil {
 				status = consts.ToolStatusError
@@ -271,11 +287,33 @@ func runAgentLoop(ctx context.Context, sessionID string, session *Session, pub p
 				"result":       out,
 				"status":       status,
 			})
+			if len(res.Media) > 0 {
+				pub.emit(map[string]interface{}{
+					"type":         consts.EventToolMedia,
+					"tool_call_id": call.ID,
+					"media":        mediaPayload(res.Media),
+				})
+				generatedMedia = append(generatedMedia, res.Media...)
+			}
 			messages = append(messages, llm.ToolResultMessage(call.ID, out))
 		}
 	}
 
 	return nil, fmt.Errorf("reached the %d step limit without a final answer", maxSteps)
+}
+
+// mediaPayload serialises generated media for the tool_media SSE event.
+func mediaPayload(media []tools.Media) []map[string]interface{} {
+	out := make([]map[string]interface{}, 0, len(media))
+	for _, m := range media {
+		out = append(out, map[string]interface{}{
+			"path": m.Path,
+			"type": m.Type,
+			"mime": m.MIME,
+			"url":  m.URL,
+		})
+	}
+	return out
 }
 
 // ---------------------------------------------------------------------------

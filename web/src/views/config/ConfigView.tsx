@@ -192,6 +192,19 @@ export function ConfigView() {
   const [notifySound, setNotifySound] = useState(() => readLocalFlag(TASK_NOTIFY_SOUND_KEY));
   const [notifyBlocked, setNotifyBlocked] = useState(false);
 
+  /* --- image generation --- */
+  const [imgEnabled, setImgEnabled] = useState(false);
+  const [imgProvider, setImgProvider] = useState('auto');
+  const [imgModel, setImgModel] = useState('');
+  const [imgSize, setImgSize] = useState('auto');
+  const [imgQuality, setImgQuality] = useState('auto');
+  const [imgMax, setImgMax] = useState(1);
+  const [imgFallback, setImgFallback] = useState(true);
+  const [imgKey, setImgKey] = useState('');
+  const [imgKeyMasked, setImgKeyMasked] = useState(false);
+  const [imgBase, setImgBase] = useState('');
+  const [imageStatus, setImageStatus] = useState<Status | null>(null);
+
   const initFromConfig = useCallback((data: AppConfig) => {
     setConfig(data);
     setReasoningByModel((data.reasoning_effort_by_model as Record<string, unknown>) || {});
@@ -236,6 +249,18 @@ export function ConfigView() {
     const maskedPwd = data.web_password_masked || '';
     setPassword(maskedPwd);
     setPasswordMasked(!!maskedPwd);
+
+    setImgEnabled(data.image_enabled === true);
+    setImgProvider((data.image_provider as string) || 'auto');
+    setImgModel((data.image_model as string) || '');
+    setImgSize((data.image_size as string) || 'auto');
+    setImgQuality((data.image_quality as string) || 'auto');
+    setImgMax(Number(data.image_max_per_call) || 1);
+    setImgFallback(data.image_fallback !== false);
+    const maskedImgKey = (data.image_api_key_masked as string) || '';
+    setImgKey(maskedImgKey);
+    setImgKeyMasked(!!maskedImgKey);
+    setImgBase((data.image_api_base as string) || '');
   }, []);
 
   useEffect(() => {
@@ -317,6 +342,19 @@ export function ConfigView() {
       .filter((mode) => offered.includes(mode))
       .map((mode) => ({ value: mode, label: t(PERMISSION_META[mode].key) }));
   }, [config, t]);
+
+  const imageProviderOptions = useMemo(
+    () => [{ value: 'auto', label: 'auto' }, ...providerOptions],
+    [providerOptions],
+  );
+  const imageSizeOptions = useMemo(
+    () => ['auto', '512', '1K', '2K', '4K'].map((v) => ({ value: v, label: v })),
+    [],
+  );
+  const imageQualityOptions = useMemo(
+    () => ['auto', 'low', 'medium', 'high'].map((v) => ({ value: v, label: v })),
+    [],
+  );
 
   /* ------------------------------------------------------------ handlers */
 
@@ -402,6 +440,32 @@ export function ConfigView() {
       flash(setAgentStatus, 'config_saved', false);
     } else {
       flash(setAgentStatus, 'config_save_error', true);
+    }
+  };
+
+  const saveImageConfig = async () => {
+    const updates: Record<string, unknown> = {
+      image_enabled: imgEnabled,
+      image_provider: imgProvider,
+      image_model: imgModel.trim(),
+      image_size: imgSize,
+      image_quality: imgQuality,
+      image_max_per_call: imgMax || 1,
+      image_fallback: imgFallback,
+      image_api_base: imgBase.trim(),
+    };
+    const newKey = imgKey.trim() && !imgKeyMasked ? imgKey.trim() : '';
+    if (newKey) updates.image_api_key = newKey;
+    const res = await api.saveConfig({ updates });
+    if (res.status === 'success') {
+      setConfig((prev) => (prev ? { ...prev, ...updates } : prev));
+      if (newKey) {
+        setImgKey(maskKey(newKey));
+        setImgKeyMasked(true);
+      }
+      flash(setImageStatus, 'config_saved', false);
+    } else {
+      flash(setImageStatus, 'config_save_error', true);
     }
   };
 
@@ -662,6 +726,97 @@ export function ConfigView() {
                   <div className="flex items-center justify-end gap-3 pt-1">
                     <StatusText status={agentStatus} />
                     <PrimaryButton onClick={saveAgentConfig}>{t('config_save')}</PrimaryButton>
+                  </div>
+                </div>
+              </Card>
+
+              {/* ------------------------------------------ Image generation */}
+              <Card className="p-6">
+                {cardHeader(
+                  'fa-image',
+                  'bg-fuchsia-50 dark:bg-fuchsia-900/30',
+                  'text-fuchsia-500',
+                  t('config_image'),
+                )}
+                <p className="text-xs text-slate-400 dark:text-slate-500 -mt-3 mb-4">
+                  {t('config_image_desc')}
+                </p>
+                <div className="space-y-4">
+                  <ToggleRow
+                    label={t('config_image_enabled')}
+                    checked={imgEnabled}
+                    onChange={setImgEnabled}
+                  />
+                  <Field label={t('config_image_provider')} tip="config_image_provider_hint">
+                    <Dropdown
+                      options={imageProviderOptions}
+                      value={imgProvider}
+                      onChange={setImgProvider}
+                    />
+                  </Field>
+                  <Field label={t('config_image_model')} tip="config_image_model_hint">
+                    <TextField
+                      value={imgModel}
+                      onChange={(e) => setImgModel(e.target.value)}
+                      placeholder="gpt-image-1 / seedream-5.0-lite / qwen-image-2.0"
+                    />
+                  </Field>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <Field label={t('config_image_size')} tip="config_image_size_hint">
+                      <Dropdown options={imageSizeOptions} value={imgSize} onChange={setImgSize} />
+                    </Field>
+                    <Field label={t('config_image_quality')} tip="config_image_quality_hint">
+                      <Dropdown
+                        options={imageQualityOptions}
+                        value={imgQuality}
+                        onChange={setImgQuality}
+                      />
+                    </Field>
+                  </div>
+                  <Field label={t('config_image_max')}>
+                    <TextField
+                      type="number"
+                      min={1}
+                      max={4}
+                      step={1}
+                      value={imgMax}
+                      onChange={(e) => setImgMax(parseInt(e.target.value, 10) || 1)}
+                    />
+                  </Field>
+                  <ToggleRow
+                    label={t('config_image_fallback')}
+                    checked={imgFallback}
+                    onChange={setImgFallback}
+                  />
+                  <Field label={t('config_image_key')} tip="config_image_key_hint">
+                    <TextField
+                      type="password"
+                      autoComplete="off"
+                      className={imgKeyMasked ? 'cfg-key-masked' : ''}
+                      value={imgKey}
+                      placeholder="sk-..."
+                      onChange={(e) => {
+                        setImgKey(e.target.value);
+                        setImgKeyMasked(false);
+                      }}
+                      onFocus={() => {
+                        if (imgKeyMasked) {
+                          setImgKey('');
+                          setImgKeyMasked(false);
+                        }
+                      }}
+                    />
+                  </Field>
+                  <Field label={t('config_image_base')}>
+                    <TextField
+                      value={imgBase}
+                      onChange={(e) => setImgBase(e.target.value)}
+                      placeholder="https://..."
+                    />
+                  </Field>
+                  <div className="flex items-center justify-end gap-3 pt-1">
+                    <StatusText status={imageStatus} />
+                    <PrimaryButton onClick={saveImageConfig}>{t('config_save')}</PrimaryButton>
                   </div>
                 </div>
               </Card>

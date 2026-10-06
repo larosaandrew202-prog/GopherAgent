@@ -91,6 +91,7 @@ export function ChatView() {
                     timestamp: streaming.startedAt,
                     steps: streaming.steps,
                     thinking: streaming.reasoning,
+                    media: streaming.media,
                   }}
                 />
               ) : null}

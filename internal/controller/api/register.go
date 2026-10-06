@@ -48,6 +48,7 @@ func Register(s *ghttp.Server) {
 	s.BindHandler("GET:/api/workspace/search", WorkspaceSearch)
 	s.BindHandler("GET:/api/workspace/resolve", WorkspaceResolve)
 	s.BindHandler("GET:/api/file", ServeFile)
+	s.BindHandler("GET:/api/media", ServeMedia)
 
 	// tools / skills / memory / knowledge
 	s.BindHandler("GET:/api/tools", GetTools)

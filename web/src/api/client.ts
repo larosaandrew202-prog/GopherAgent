@@ -190,6 +190,15 @@ function apiUrl(path: string): string {
   return BACKEND ? `${BACKEND}${path}` : path;
 }
 
+/** Prefix a backend-relative URL (e.g. "/api/media?path=...") with the
+ *  configured backend origin so media embedded in markdown resolves even when
+ *  the console is served from a different origin (dev). */
+export function backendUrl(path: string): string {
+  if (!path) return path;
+  if (/^https?:\/\//i.test(path) || path.startsWith('data:')) return path;
+  return apiUrl(path);
+}
+
 const delay = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms));
 
 function uid(prefix = 'id'): string {

@@ -12,6 +12,7 @@ import { api } from '@/api';
 import type {
   Attachment,
   ChatMessage,
+  MediaItem,
   PermissionMode,
   Session,
   SessionProject,
@@ -41,11 +42,7 @@ function loadOrCreateSessionId(): string {
   return created;
 }
 
-export interface MediaItem {
-  type: 'image' | 'video' | 'file';
-  url: string;
-  name?: string;
-}
+export type { MediaItem } from '@/api/types';
 
 export interface StreamingState {
   requestId: string;
@@ -170,6 +167,7 @@ export function ChatProvider({ children }: { children: ReactNode }) {
           requestId: buf.requestId,
           steps: buf.steps.length ? buf.steps : undefined,
           thinking: buf.reasoning || undefined,
+          media: buf.media.length ? buf.media : undefined,
         };
         if (sessionIdRef.current === sid) setMessages((m) => [...m, finalMsg]);
       }
@@ -219,6 +217,19 @@ export function ChatProvider({ children }: { children: ReactNode }) {
         case 'subagent_step':
           buf.steps.push({ type: 'tool', name: (event.name as string) ?? 'subagent', result: event, status: 'done' });
           break;
+        case 'tool_media': {
+          const list = Array.isArray(event.media) ? (event.media as Array<Record<string, unknown>>) : [];
+          for (const m of list) {
+            buf.media.push({
+              type: (m.type as MediaItem['type']) ?? 'image',
+              url: (m.url as string) ?? '',
+              path: (m.path as string) ?? '',
+              mime: (m.mime as string) ?? '',
+              name: (m.name as string) ?? '',
+            });
+          }
+          break;
+        }
         case 'image':
         case 'video':
         case 'file':

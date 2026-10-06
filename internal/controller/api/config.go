@@ -38,11 +38,13 @@ var intKeys = map[string]struct{}{
 	consts.CfgAgentMaxSteps: {}, consts.CfgRequestTimeout: {},
 	consts.CfgEmbeddingDimensions: {}, consts.CfgMemoryMaxResults: {},
 	consts.CfgMemoryFlushTurns: {}, consts.CfgMemoryChunkTokens: {}, consts.CfgMemoryChunkOverlap: {},
+	consts.CfgImageMaxPerCall: {}, consts.CfgImageTimeoutSec: {},
 }
 var boolKeys = map[string]struct{}{
 	consts.CfgEnableThinking: {}, consts.CfgSelfEvolution: {},
 	consts.CfgKnowledge: {}, consts.CfgAgent: {}, consts.CfgSubagentEnabled: {},
 	consts.CfgMemoryAutoFlush: {},
+	consts.CfgImageEnabled:    {}, consts.CfgImageFallback: {},
 }
 var floatKeys = map[string]struct{}{
 	consts.CfgTemperature: {}, consts.CfgTopP: {},
@@ -61,6 +63,10 @@ func buildEditableKeys() []string {
 		consts.CfgMemoryVectorWeight, consts.CfgMemoryKeywordWeight, consts.CfgMemoryMaxResults,
 		consts.CfgMemoryMinScore, consts.CfgMemoryHalfLifeDays, consts.CfgMemoryAutoFlush,
 		consts.CfgMemoryFlushTurns, consts.CfgMemoryChunkTokens, consts.CfgMemoryChunkOverlap,
+		consts.CfgImageEnabled, consts.CfgImageProvider, consts.CfgImageModel,
+		consts.CfgImageAPIKey, consts.CfgImageAPIBase, consts.CfgImageSize,
+		consts.CfgImageQuality, consts.CfgImageMaxPerCall, consts.CfgImageTimeoutSec,
+		consts.CfgImageFallback, consts.CfgImageOutputDir,
 		consts.CfgCharacterDesc, consts.CfgTemperature, consts.CfgTopP, consts.CfgFrequencyPenalty,
 		consts.CfgPresencePenalty, consts.CfgRequestTimeout, consts.CfgProxy,
 		consts.CfgAgent, consts.CfgAgentMaxContextTokens, consts.CfgAgentMaxContextTurns,
@@ -153,6 +159,17 @@ func GetConfig(r *ghttp.Request) {
 		"api_bases":                 apiBases,
 		"api_keys":                  apiKeys,
 		"providers":                 providers,
+		"image_enabled":             s.GetBool(consts.CfgImageEnabled),
+		"image_provider":            s.GetString(consts.CfgImageProvider),
+		"image_model":               s.GetString(consts.CfgImageModel),
+		"image_size":                s.GetString(consts.CfgImageSize),
+		"image_quality":             s.GetString(consts.CfgImageQuality),
+		"image_max_per_call":        s.GetInt(consts.CfgImageMaxPerCall, 1),
+		"image_timeout_sec":         s.GetInt(consts.CfgImageTimeoutSec, 300),
+		"image_fallback":            s.GetBool(consts.CfgImageFallback),
+		"image_output_dir":          s.GetString(consts.CfgImageOutputDir),
+		"image_api_base":            s.GetString(consts.CfgImageAPIBase),
+		"image_api_key_masked":      config.MaskKey(s.GetString(consts.CfgImageAPIKey)),
 		"web_password_masked":       maskedPwd,
 	})
 }
