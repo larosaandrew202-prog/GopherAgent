@@ -25,8 +25,10 @@ func (ImageGenTool) Name() string { return consts.ToolImageGen }
 func (ImageGenTool) Description() string {
 	return "Generate or edit images from a text prompt and save the result to the workspace. " +
 		"Use when the user asks to create, draw, design or edit a picture, illustration, icon or poster. " +
-		"The generated image is displayed to the user automatically — do not embed image markdown " +
-		"or file paths in your reply; just describe the result."
+		"Always call this tool to produce a fresh image for the current request — never reuse or " +
+		"reference an image from earlier in the conversation. The generated image is displayed to " +
+		"the user automatically, so do not embed image markdown or file paths in your reply; " +
+		"just describe the result."
 }
 
 func (ImageGenTool) Parameters() map[string]interface{} {
@@ -87,11 +89,7 @@ func (ImageGenTool) ExecuteRich(ctx context.Context, args map[string]interface{}
 	var media []Media
 	relPaths := make([]string, 0, len(results))
 	for _, r := range results {
-		name := strings.ReplaceAll(guid.S(), "-", "")
-		if len(name) > 12 {
-			name = name[:12]
-		}
-		full := filepath.Join(outDir, name+"."+r.Ext)
+		full := filepath.Join(outDir, imageFileName(r.Ext))
 		if err := os.WriteFile(full, r.Data, 0o644); err != nil {
 			return RichResult{}, fmt.Errorf("write image: %w", err)
 		}
@@ -113,9 +111,18 @@ func (ImageGenTool) ExecuteRich(ctx context.Context, args map[string]interface{}
 		"provider": providerName,
 		"model":    model,
 		"images":   relPaths,
-		"note":     "The image is shown to the user automatically. Do not embed image markdown or file paths in your reply.",
+		"note":     "A fresh image was just generated and is shown to the user automatically. Do not embed image markdown or file paths, and do not reference images from earlier turns.",
 	})
 	return RichResult{Output: string(payload), Media: media}, nil
+}
+
+// imageFileName returns a collision-resistant filename for a generated image.
+// NOTE: always use the full guid (32 chars). guid.S() is
+// MACHash(7)+PID(4)+timestamp+sequence+random, so its leading bytes are
+// constant for the whole process — truncating them made every image reuse the
+// same name and overwrite the previous file.
+func imageFileName(ext string) string {
+	return guid.S() + "." + ext
 }
 
 // imageOutputDir resolves the directory generated images are saved to. It is

@@ -17,11 +17,11 @@ GopherAgent 是一个可自托管的个人 AI 智能体（Agent）。除了聊�
 | 配置管理 | 配置读写、API Key 脱敏，`GET/POST /config` |
 | 模型供应商 | 多家 OpenAI 兼容供应商，管理凭证 / 自定义厂商 / 主模型 |
 | 基础对话 | 多会话、系统提示词、上下文轮次裁剪 |
+| 图像生成 | 文本生成 / 编辑图片（文生图、图生图、多图融合），多厂商自动路由 + 失败回退，产物落工作区并在对话中展示 |
 | Agent 工具 | function calling 循环：shell、文件读写编辑、网页抓取/搜索、记忆检索、定时任务 |
 | 流式对话 | `POST /message` → `request_id`，`GET /stream` 以 SSE 推送 `reasoning / delta / tool_start / tool_end / tool_media / done / stream_end`，支持 `after_seq` 断点续传 |
 | 会话管理 | 列表 / 重命名 / 置顶 / 删除、历史分页、清空上下文、删除消息、会话级模型与权限 |
 | 长期记忆 | Markdown 记忆文件（`MEMORY.md` + 每日记忆），向量 + 关键词混合检索 |
-| 图像生成 | 文本生成 / 编辑图片（文生图、图生图、多图融合），多厂商自动路由 + 失败回退，产物落工作区并在对话中展示 |
 | 持久化 | GoFrame ORM + SQLite（`gopher_agent.db`）|
 
 > 技能、知识库、通道、日志、工作空间等接口为占位实现，保证前端可正常加载，后续按需补齐。
@@ -51,6 +51,35 @@ npm run build   # 产出 web/dist/
 ```
 
 后端已开启 CORS，前端无需 Vite 代理。
+
+## 🎨 图像生成
+
+Agent 可调用 `image_gen` 根据描述生成图片，也支持以本地文件或 URL 作为输入做**图生图**与**多图融合**。
+产物保存到工作区的 `images/` 目录，并在对话（含历史）中直接展示。
+
+![GopherAgent 生成图片](./image/img_1.png)
+
+- **多厂商**：OpenAI、Gemini（Nano Banana）、火山方舟（Seedream）、百炼（Qwen）、MiniMax，以及任意 OpenAI 兼容的自定义厂商
+- **自动路由 + 失败回退**：默认按 `openai → gemini → doubao → dashscope → minimax` 选第一个已配置的厂商，失败自动切换下一家；指定模型时会按其原生厂商优先
+- **凭证复用**：默认复用对话模型已配置的 Key（`open_ai_api_key` / `gemini_api_key` / `ark_api_key` / `dashscope_api_key` / `minimax_api_key`），也可用 `image_api_key` / `image_api_base` 单独覆盖
+- **参数**：`prompt`（必填）、`image`（可选，编辑/融合的输入图，字符串或数组）、`size`（`512` / `1K` / `2K` / `4K` 或 `WxH`）、`aspect_ratio`、`quality`（`low` / `medium` / `high`，部分厂商支持）、`n`
+- **产物读取**：`GET /api/media?path=...`，限定在工作区内，防止目录穿越
+
+在控制台「配置 → 图像生成」里启用并选择厂商，或通过 API：
+
+```bash
+curl -X POST http://localhost:9899/config -H "Content-Type: application/json" -d '{"updates":{
+  "image_enabled": true,
+  "image_provider": "auto",
+  "image_model": "",
+  "image_size": "1K",
+  "image_max_per_call": 1
+}}'
+```
+
+相关配置项：`image_enabled`、`image_provider`、`image_model`、`image_size`、`image_quality`、
+`image_max_per_call`、`image_timeout_sec`、`image_fallback`、`image_output_dir`、`image_api_key`、`image_api_base`。
+未启用时 `image_gen` 会返回明确提示，不影响其它功能。
 
 ## 🛠 Agent 工具
 
@@ -98,33 +127,6 @@ npm run build   # 产出 web/dist/
 - **写入**：Agent 用 `write`/`edit` 写记忆文件；开启 `memory_auto_flush` 时每累计 `memory_flush_turns` 轮自动把会话摘要追加到今日记忆
 - **命令**：`/memory rebuild-index`（重建索引）、`/memory flush`（总结当前会话到今日记忆）
 - **未配置 embedding**：检索自动降级为纯关键词模式，功能仍可用
-
-## 🎨 图像生成
-
-Agent 可调用 `image_gen` 根据描述生成图片，也支持以本地文件或 URL 作为输入做**图生图**与**多图融合**。
-产物保存到工作区的 `images/` 目录，并在对话（含历史）中直接展示。
-
-- **多厂商**：OpenAI、Gemini（Nano Banana）、火山方舟（Seedream）、百炼（Qwen）、MiniMax，以及任意 OpenAI 兼容的自定义厂商
-- **自动路由 + 失败回退**：默认按 `openai → gemini → doubao → dashscope → minimax` 选第一个已配置的厂商，失败自动切换下一家；指定模型时会按其原生厂商优先
-- **凭证复用**：默认复用对话模型已配置的 Key（`open_ai_api_key` / `gemini_api_key` / `ark_api_key` / `dashscope_api_key` / `minimax_api_key`），也可用 `image_api_key` / `image_api_base` 单独覆盖
-- **参数**：`prompt`（必填）、`image`（可选，编辑/融合的输入图，字符串或数组）、`size`（`512` / `1K` / `2K` / `4K` 或 `WxH`）、`aspect_ratio`、`quality`（`low` / `medium` / `high`，部分厂商支持）、`n`
-- **产物读取**：`GET /api/media?path=...`，限定在工作区内，防止目录穿越
-
-在控制台「配置 → 图像生成」里启用并选择厂商，或通过 API：
-
-```bash
-curl -X POST http://localhost:9899/config -H "Content-Type: application/json" -d '{"updates":{
-  "image_enabled": true,
-  "image_provider": "auto",
-  "image_model": "",
-  "image_size": "1K",
-  "image_max_per_call": 1
-}}'
-```
-
-相关配置项：`image_enabled`、`image_provider`、`image_model`、`image_size`、`image_quality`、
-`image_max_per_call`、`image_timeout_sec`、`image_fallback`、`image_output_dir`、`image_api_key`、`image_api_base`。
-未启用时 `image_gen` 会返回明确提示，不影响其它功能。
 
 ## 🗂 目录结构
 
