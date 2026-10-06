@@ -1,0 +1,73 @@
+#!/usr/bin/env bash
+#
+# One-click: rebuild the GopherAgent image and start a fresh container.
+# The old container keeps running if the build fails.
+#
+# Usage:
+#   ./scripts/docker-redeploy.sh
+#   HOST_PORT=80 ./scripts/docker-redeploy.sh
+#   TARGET=backend CONTAINER_PORT=9899 HOST_PORT=9899 ./scripts/docker-redeploy.sh
+#
+# Overridable env vars:
+#   IMAGE            image tag                 (default: gopher-agent)
+#   CONTAINER        container name            (default: gopher-agent)
+#   HOST_PORT        host port to publish      (default: 8080)
+#   CONTAINER_PORT   container port to expose  (default: 80)
+#   DATA_VOLUME      data volume name          (default: gopher-data)
+#   TZ_NAME          container timezone        (default: Asia/Shanghai)
+#   TARGET           Docker build target       (default: "" = all-in-one runtime)
+#   BUILD_ARGS       extra `docker build` args (word-split)
+#   RUN_ARGS         extra `docker run` args   (word-split)
+set -euo pipefail
+
+IMAGE="${IMAGE:-gopher-agent}"
+CONTAINER="${CONTAINER:-gopher-agent}"
+HOST_PORT="${HOST_PORT:-8080}"
+CONTAINER_PORT="${CONTAINER_PORT:-80}"
+DATA_VOLUME="${DATA_VOLUME:-gopher-data}"
+TZ_NAME="${TZ_NAME:-Asia/Shanghai}"
+TARGET="${TARGET:-}"
+# shellcheck disable=SC2206
+BUILD_ARGS=(${BUILD_ARGS:-})
+# shellcheck disable=SC2206
+RUN_ARGS=(${RUN_ARGS:-})
+
+# Run from the repository root regardless of where the script is invoked.
+cd "$(dirname "$0")/.."
+
+green() { printf '\033[1;32m%s\033[0m\n' "$*"; }
+red() { printf '\033[1;31m%s\033[0m\n' "$*" >&2; }
+
+if ! command -v docker >/dev/null 2>&1; then
+    red "error: docker not found in PATH"
+    exit 1
+fi
+
+green "==> 1/3  Building image '${IMAGE}'${TARGET:+ (target: ${TARGET})}"
+build=(docker build -t "$IMAGE")
+[ -n "$TARGET" ] && build+=(--target "$TARGET")
+[ "${#BUILD_ARGS[@]}" -gt 0 ] && build+=("${BUILD_ARGS[@]}")
+build+=(.)
+"${build[@]}"
+
+green "==> 2/3  Recreating container '${CONTAINER}'"
+docker rm -f "$CONTAINER" >/dev/null 2>&1 || true
+
+green "==> 3/3  Starting container (${HOST_PORT} -> ${CONTAINER_PORT}, volume: ${DATA_VOLUME})"
+run=(
+    docker run -d
+    --name "$CONTAINER"
+    -p "${HOST_PORT}:${CONTAINER_PORT}"
+    -v "${DATA_VOLUME}:/data"
+    -e "TZ=${TZ_NAME}"
+    --restart unless-stopped
+)
+[ "${#RUN_ARGS[@]}" -gt 0 ] && run+=("${RUN_ARGS[@]}")
+run+=("$IMAGE")
+"${run[@]}"
+
+echo
+docker ps --filter "name=^/${CONTAINER}$" --format 'table {{.Names}}\t{{.Status}}\t{{.Ports}}'
+echo
+green "Done.  http://<server-ip>:${HOST_PORT}"
+echo "Logs:   docker logs -f ${CONTAINER}"
