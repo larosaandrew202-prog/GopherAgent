@@ -22,12 +22,13 @@ function smoothStep(a: number, b: number, t: number): number {
   return x * x * (3 - 2 * x);
 }
 
-/** Build the displacement map: a lens rim `ringPx` wide along every edge. */
+/** Build the displacement map: a lens rim `ringPx` wide along the shape edge. */
 function buildDisplacementMap(
   width: number,
   height: number,
   ringPx: number,
   pullPx: number,
+  shape: 'rect' | 'circle' = 'rect',
 ): { href: string; scale: number } | null {
   const w = Math.max(1, Math.round(width));
   const h = Math.max(1, Math.round(height));
@@ -42,6 +43,7 @@ function buildDisplacementMap(
   const dys = new Float32Array(w * h);
   const cx = w / 2;
   const cy = h / 2;
+  const radius = Math.min(w, h) / 2;
   let maxScale = 0;
   let i = 0;
 
@@ -51,7 +53,10 @@ function buildDisplacementMap(
     for (let x = 0; x < w; x++) {
       const cx0 = x + 0.5;
       const distX = Math.min(cx0, w - cx0);
-      const edgeDist = Math.min(distX, distY);
+      const edgeDist =
+        shape === 'circle'
+          ? radius - Math.hypot(cx0 - cx, cy0 - cy)
+          : Math.min(distX, distY);
       const t = smoothStep(ringPx, 0, edgeDist); // 1 at the edge → 0 at ringPx inward
       const amount = t * pullPx;
       const vx = cx - cx0;
@@ -100,6 +105,9 @@ export function useLiquidGlass({
   pull = 18,
   blur = 6,
   debounce = 0,
+  shape = 'rect',
+  saturate = 160,
+  brightness = 1.04,
 }: {
   width: number;
   height: number;
@@ -108,6 +116,10 @@ export function useLiquidGlass({
   blur?: number;
   /** Rebuild delay (ms) for size changes; 0 builds synchronously. */
   debounce?: number;
+  shape?: 'rect' | 'circle';
+  /** Backdrop saturation/brightness. Lower them for a more transparent glass. */
+  saturate?: number;
+  brightness?: number;
 }): LiquidGlass {
   const filterId = useMemo(() => `liquid-glass-${Math.random().toString(36).slice(2, 10)}`, []);
   const [map, setMap] = useState<{ href: string; scale: number } | null>(null);
@@ -117,7 +129,7 @@ export function useLiquidGlass({
       setMap(null);
       return;
     }
-    const build = () => setMap(buildDisplacementMap(width, height, ring, pull));
+    const build = () => setMap(buildDisplacementMap(width, height, ring, pull, shape));
     if (debounce <= 0) {
       // Synchronous (a few ms): rAF is throttled in background tabs.
       build();
@@ -125,11 +137,11 @@ export function useLiquidGlass({
     }
     const timer = window.setTimeout(build, debounce);
     return () => window.clearTimeout(timer);
-  }, [width, height, ring, pull, debounce]);
+  }, [width, height, ring, pull, debounce, shape]);
 
   const ready = !!map;
   const style: CSSProperties = ready
-    ? { backdropFilter: `url(#${filterId}) blur(${blur}px) saturate(160%) brightness(1.04)` }
+    ? { backdropFilter: `url(#${filterId}) blur(${blur}px) saturate(${saturate}%) brightness(${brightness})` }
     : {};
 
   return { filterId, width, height, href: map?.href ?? null, scale: map?.scale ?? 0, ready, style };
