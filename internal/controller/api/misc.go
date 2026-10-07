@@ -5,7 +5,6 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
-	"time"
 
 	"github.com/gogf/gf/v2/frame/g"
 	"github.com/gogf/gf/v2/net/ghttp"
@@ -437,27 +436,6 @@ func VoiceAsr(r *ghttp.Request) {
 // VoiceTts reports that speech synthesis is not configured.
 func VoiceTts(r *ghttp.Request) {
 	fail(r, "text to speech is not configured")
-}
-
-// LogsStream streams a minimal log feed over SSE.
-func LogsStream(r *ghttp.Request) {
-	r.Response.Header().Set("Content-Type", "text/event-stream; charset=utf-8")
-	r.Response.Header().Set("Cache-Control", "no-cache")
-	r.Response.Header().Set("X-Accel-Buffering", "no")
-	r.Response.Write("data: {\"type\":\"init\"}\n\n")
-	r.Response.Flush()
-
-	ticker := time.NewTicker(15 * time.Second)
-	defer ticker.Stop()
-	for {
-		select {
-		case <-r.Context().Done():
-			return
-		case <-ticker.C:
-			r.Response.Write(": keep-alive\n\n")
-			r.Response.Flush()
-		}
-	}
 }
 
 // ServeFile serves a local file by absolute path (workspace preview/download).

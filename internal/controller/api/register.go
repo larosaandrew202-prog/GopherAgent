@@ -81,4 +81,5 @@ func Register(s *ghttp.Server) {
 	s.BindHandler("POST:/api/voice/asr", VoiceAsr)
 	s.BindHandler("POST:/api/voice/tts", VoiceTts)
 	s.BindHandler("GET:/api/logs", LogsStream)
+	s.BindHandler("GET:/api/logs/download", LogsDownload)
 }

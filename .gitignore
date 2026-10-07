@@ -36,3 +36,6 @@ gopheragent.exe
 # Frontend (web/)
 node_modules/
 *.tsbuildinfo
+
+# log
+*.log
