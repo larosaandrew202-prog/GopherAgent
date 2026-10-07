@@ -6,6 +6,7 @@ import { Header } from './Header';
 import { SessionPanel } from './SessionPanel';
 import { LoginOverlay } from './LoginOverlay';
 import { ModalHost } from './ModalHost';
+import { CursorGlass } from '@/components/ui/CursorGlass';
 import { ChatView } from '@/components/chat/ChatView';
 import { ConfigView } from '@/views/config/ConfigView';
 import { SkillsView } from '@/views/skills/SkillsView';
@@ -59,6 +60,7 @@ export function Shell() {
             </div>
           </div>
         </div>
+        <CursorGlass />
       </div>
       <ModalHost />
     </>
