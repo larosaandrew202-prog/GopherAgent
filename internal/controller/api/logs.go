@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/gogf/gf/v2/net/ghttp"
+	"github.com/gogf/gf/v2/os/gfsnotify"
 
 	"GopherAgent/internal/logic/paths"
 )
@@ -53,9 +54,25 @@ func LogsStream(r *ghttp.Request) {
 	ctx := r.Context()
 	reader := bufio.NewReader(f)
 	keepAlive := time.NewTicker(12 * time.Second)
-	poll := time.NewTicker(400 * time.Millisecond)
+	poll := time.NewTicker(200 * time.Millisecond)
 	defer keepAlive.Stop()
 	defer poll.Stop()
+
+	// Wake the loop the instant the file changes; the poll ticker is the
+	// fallback for platforms where the watcher does not fire on appends.
+	changed := make(chan struct{}, 1)
+	if watcher, err := gfsnotify.New(); err == nil {
+		if _, err := watcher.Add(logPath, func(*gfsnotify.Event) {
+			select {
+			case changed <- struct{}{}:
+			default:
+			}
+		}); err == nil {
+			defer watcher.Close()
+		} else {
+			watcher.Close()
+		}
+	}
 
 	for {
 		line, readErr := reader.ReadString('\n')
@@ -70,6 +87,7 @@ func LogsStream(r *ghttp.Request) {
 		select {
 		case <-ctx.Done():
 			return
+		case <-changed:
 		case <-keepAlive.C:
 			r.Response.Write(": keep-alive\n\n")
 			r.Response.Flush()
