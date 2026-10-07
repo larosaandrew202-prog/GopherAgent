@@ -28,3 +28,9 @@ func Workspace() string {
 	_ = os.MkdirAll(dir, 0o755)
 	return dir
 }
+
+// LogFile returns the process log file surfaced by the console's log view. It
+// lives at the data root, next to the database, and is tailed by LogsStream.
+func LogFile() string {
+	return filepath.Join(store.DataRoot(), "run.log")
+}
