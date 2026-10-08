@@ -16,6 +16,7 @@ import (
 	"GopherAgent/internal/logic/paths"
 	"GopherAgent/internal/logic/scheduler"
 	"GopherAgent/internal/logic/schedulerrun"
+	skillslogic "GopherAgent/internal/logic/skills"
 	toolkit "GopherAgent/internal/logic/tools"
 	"GopherAgent/internal/store"
 )
@@ -126,13 +127,57 @@ func toolIcon(name string) string {
 	}
 }
 
-// GetSkills returns an empty skill catalogue.
-func GetSkills(r *ghttp.Request) {
-	ok(r, g.Map{"skills": []interface{}{}})
+// skillInfo is one entry in the console's skill catalogue.
+type skillInfo struct {
+	Name        string `json:"name"`
+	Title       string `json:"title"`
+	Description string `json:"description"`
+	Path        string `json:"path"`
+	Icon        string `json:"icon,omitempty"`
+	Enabled     bool   `json:"enabled"`
 }
 
-// ToggleSkill acknowledges skill toggles.
+// GetSkills lists the workspace skills and whether each is enabled.
+func GetSkills(r *ghttp.Request) {
+	if !requireAuth(r) {
+		return
+	}
+	_ = skillslogic.EnsureGuide(paths.Workspace())
+	disabled := skillslogic.Disabled()
+	list := skillslogic.Load(paths.Workspace())
+	items := make([]skillInfo, 0, len(list))
+	for _, s := range list {
+		items = append(items, skillInfo{
+			Name:        s.Name,
+			Title:       s.Name,
+			Description: s.Description,
+			Path:        s.Path,
+			Icon:        s.Icon,
+			Enabled:     !disabled[s.Name],
+		})
+	}
+	ok(r, g.Map{"skills": items})
+}
+
+// ToggleSkill enables or disables one skill.
 func ToggleSkill(r *ghttp.Request) {
+	if !requireAuth(r) {
+		return
+	}
+	var body struct {
+		Name    string `json:"name"`
+		Enabled bool   `json:"enabled"`
+	}
+	_ = parseBody(r, &body)
+	name := strings.TrimSpace(body.Name)
+	if name == "" {
+		fail(r, "name is required")
+		return
+	}
+	if err := skillslogic.SetEnabled(name, body.Enabled); err != nil {
+		fail(r, err.Error())
+		return
+	}
 	ok(r, g.Map{})
 }
 

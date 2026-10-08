@@ -140,6 +140,7 @@ const (
 	CfgAgentMaxSteps         = "agent_max_steps"
 	CfgAgentPermissionMode   = "agent_permission_mode"
 	CfgDisabledTools         = "disabled_tools"
+	CfgDisabledSkills        = "disabled_skills"
 	CfgSubagentEnabled       = "subagent_enabled"
 	CfgEnableThinking        = "enable_thinking"
 	CfgReasoningEffort       = "reasoning_effort"

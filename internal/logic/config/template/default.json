@@ -70,6 +70,7 @@
   "agent_permission_mode": "full_access",
   "subagent_enabled": true,
   "disabled_tools": [],
+  "disabled_skills": [],
   "enable_thinking": false,
   "reasoning_effort": "high",
   "reasoning_effort_by_model": {},

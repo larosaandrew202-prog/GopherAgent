@@ -11,7 +11,7 @@ import (
 // Event is one SSE frame published for a request.
 type Event struct {
 	Seq  int
-	Data map[string]interface{}
+	Data StreamEvent
 }
 
 type streamState struct {
@@ -29,11 +29,11 @@ func newStreamState() *streamState {
 	return s
 }
 
-func (s *streamState) append(event map[string]interface{}) {
+func (s *streamState) append(event StreamEvent) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	s.seq++
-	event["seq"] = s.seq
+	event.Seq = s.seq
 	s.events = append(s.events, Event{Seq: s.seq, Data: event})
 	s.cond.Broadcast()
 }
@@ -133,7 +133,7 @@ func (h *Hub) NewRequest(sessionID string) (string, context.Context) {
 }
 
 // Publish appends an event to a request stream.
-func (h *Hub) Publish(id string, event map[string]interface{}) {
+func (h *Hub) Publish(id string, event StreamEvent) {
 	h.mu.Lock()
 	state := h.streams[id]
 	h.mu.Unlock()

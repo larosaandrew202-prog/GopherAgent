@@ -18,6 +18,7 @@ import (
 	memorylogic "GopherAgent/internal/logic/memory"
 	"GopherAgent/internal/logic/paths"
 	"GopherAgent/internal/logic/schedulerrun"
+	skillslogic "GopherAgent/internal/logic/skills"
 	"GopherAgent/internal/store"
 )
 
@@ -37,6 +38,9 @@ var (
 			g.Log().Infof(ctx, "GopherAgent listening on :%d", port)
 
 			memorylogic.EnsureFiles()
+			if err := skillslogic.EnsureGuide(paths.Workspace()); err != nil {
+				g.Log().Warningf(ctx, "skills guide init failed: %v", err)
+			}
 			go func() {
 				if _, err := memorylogic.Sync(ctx); err != nil {
 					g.Log().Warningf(ctx, "memory index sync failed: %v", err)

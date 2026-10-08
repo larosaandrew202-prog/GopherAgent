@@ -50,6 +50,15 @@ func (ImageGenTool) Parameters() map[string]interface{} {
 	}
 }
 
+// imageGenResult is the JSON payload the tool returns to the model, alongside
+// the structured Media the console renders.
+type imageGenResult struct {
+	Provider string   `json:"provider"`
+	Model    string   `json:"model"`
+	Images   []string `json:"images"`
+	Note     string   `json:"note"`
+}
+
 func (t ImageGenTool) Execute(ctx context.Context, args map[string]interface{}, ec ExecContext) (string, error) {
 	res, err := t.ExecuteRich(ctx, args, ec)
 	return res.Output, err
@@ -107,11 +116,11 @@ func (ImageGenTool) ExecuteRich(ctx context.Context, args map[string]interface{}
 		})
 	}
 
-	payload, _ := json.Marshal(map[string]interface{}{
-		"provider": providerName,
-		"model":    model,
-		"images":   relPaths,
-		"note":     "A fresh image was just generated and is shown to the user automatically. Do not embed image markdown or file paths, and do not reference images from earlier turns.",
+	payload, _ := json.Marshal(imageGenResult{
+		Provider: providerName,
+		Model:    model,
+		Images:   relPaths,
+		Note:     "A fresh image was just generated and is shown to the user automatically. Do not embed image markdown or file paths, and do not reference images from earlier turns.",
 	})
 	return RichResult{Output: string(payload), Media: media}, nil
 }
