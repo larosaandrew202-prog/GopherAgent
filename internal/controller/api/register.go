@@ -2,84 +2,123 @@ package api
 
 import "github.com/gogf/gf/v2/net/ghttp"
 
-// Register binds every console-facing route onto the server.
+// Register binds every console-facing route onto the server, grouped by domain.
+// Each group owns its prefix, so a path segment is written once instead of on
+// every route.
 func Register(s *ghttp.Server) {
-	// auth + meta
-	s.BindHandler("GET:/auth/check", AuthCheck)
-	s.BindHandler("POST:/auth/login", AuthLogin)
-	s.BindHandler("POST:/auth/logout", AuthLogout)
-	s.BindHandler("GET:/api/version", Version)
-	s.BindHandler("GET:/api/health", Health)
+	registerRoot(s)
+	registerAPI(s)
+}
 
-	// config + models
-	s.BindHandler("GET:/config", GetConfig)
-	s.BindHandler("POST:/config", SaveConfig)
-	s.BindHandler("GET:/api/models", GetModels)
-	s.BindHandler("POST:/api/models", ModelsAction)
-	s.BindHandler("POST:/api/prompt/optimize", OptimizePrompt)
+// registerRoot binds the endpoints that live at the server root rather than
+// under /api: auth, config and the chat transport.
+func registerRoot(s *ghttp.Server) {
+	s.Group("/auth", func(auth *ghttp.RouterGroup) {
+		auth.GET("/check", AuthCheck)
+		auth.POST("/login", AuthLogin)
+		auth.POST("/logout", AuthLogout)
+	})
 
-	// chat
-	s.BindHandler("POST:/message", PostMessage)
-	s.BindHandler("GET:/stream", StreamChat)
-	s.BindHandler("POST:/cancel", CancelChat)
-	s.BindHandler("POST:/upload", Upload)
+	s.Group("/config", func(cfg *ghttp.RouterGroup) {
+		cfg.GET("/", GetConfig)
+		cfg.POST("/", SaveConfig)
+	})
 
-	// sessions (specific paths first)
-	s.BindHandler("POST:/api/sessions/{id}/clear_context", ClearContext)
-	s.BindHandler("POST:/api/sessions/{id}/generate_title", GenerateTitle)
-	s.BindHandler("GET:/api/sessions/{id}/settings", GetSessionSettings)
-	s.BindHandler("POST:/api/sessions/{id}/settings", UpdateSessionSettings)
-	s.BindHandler("GET:/api/sessions", ListSessions)
-	s.BindHandler("GET:/api/sessions/{id}", GetSession)
-	s.BindHandler("PUT:/api/sessions/{id}", UpdateSession)
-	s.BindHandler("DELETE:/api/sessions/{id}", DeleteSession)
-	s.BindHandler("GET:/api/history", History)
-	s.BindHandler("POST:/api/messages/delete", DeleteMessagesHandler)
+	s.Group("", func(chat *ghttp.RouterGroup) {
+		chat.POST("/message", PostMessage)
+		chat.GET("/stream", StreamChat)
+		chat.POST("/cancel", CancelChat)
+		chat.POST("/upload", Upload)
+	})
+}
 
-	// projects + workspace
-	s.BindHandler("GET:/api/projects", GetProjects)
-	s.BindHandler("POST:/api/projects/select", SelectProject)
-	s.BindHandler("POST:/api/projects/create", CreateProject)
-	s.BindHandler("GET:/api/projects/browse", BrowseProjects)
-	s.BindHandler("POST:/api/projects/order", ProjectAction)
-	s.BindHandler("POST:/api/projects/manage", ProjectAction)
-	s.BindHandler("GET:/api/workspace/meta", WorkspaceMeta)
-	s.BindHandler("GET:/api/workspace/tree", WorkspaceTree)
-	s.BindHandler("GET:/api/workspace/search", WorkspaceSearch)
-	s.BindHandler("GET:/api/workspace/resolve", WorkspaceResolve)
-	s.BindHandler("GET:/api/file", ServeFile)
-	s.BindHandler("GET:/api/media", ServeMedia)
+// registerAPI binds everything under /api.
+func registerAPI(s *ghttp.Server) {
+	s.Group("/api", func(api *ghttp.RouterGroup) {
+		// meta + config + models
+		api.GET("/version", Version)
+		api.GET("/health", Health)
+		api.GET("/models", GetModels)
+		api.POST("/models", ModelsAction)
+		api.POST("/prompt/optimize", OptimizePrompt)
 
-	// tools / skills / memory / knowledge
-	s.BindHandler("GET:/api/tools", GetTools)
-	s.BindHandler("GET:/api/skills", GetSkills)
-	s.BindHandler("POST:/api/skills", ToggleSkill)
-	s.BindHandler("GET:/api/memory", GetMemory)
-	s.BindHandler("GET:/api/memory/content", GetMemoryContent)
-	s.BindHandler("GET:/api/knowledge/list", KnowledgeList)
-	s.BindHandler("GET:/api/knowledge/read", KnowledgeRead)
-	s.BindHandler("GET:/api/knowledge/graph", KnowledgeGraph)
-	s.BindHandler("POST:/api/knowledge/action", KnowledgeAction)
-	s.BindHandler("POST:/api/knowledge/import", KnowledgeImport)
+		// sessions (specific paths before the generic {id})
+		api.Group("/sessions", func(sessions *ghttp.RouterGroup) {
+			sessions.POST("/{id}/clear_context", ClearContext)
+			sessions.POST("/{id}/generate_title", GenerateTitle)
+			sessions.GET("/{id}/settings", GetSessionSettings)
+			sessions.POST("/{id}/settings", UpdateSessionSettings)
+			sessions.GET("/", ListSessions)
+			sessions.GET("/{id}", GetSession)
+			sessions.PUT("/{id}", UpdateSession)
+			sessions.DELETE("/{id}", DeleteSession)
+		})
+		api.GET("/history", History)
+		api.POST("/messages/delete", DeleteMessagesHandler)
 
-	// channels
-	s.BindHandler("GET:/api/channels", GetChannels)
-	s.BindHandler("POST:/api/channels", ChannelsAction)
-	s.BindHandler("GET:/api/weixin/qrlogin", WeixinQr)
-	s.BindHandler("POST:/api/weixin/qrlogin", WeixinQr)
-	s.BindHandler("GET:/api/feishu/register", FeishuRegister)
-	s.BindHandler("POST:/api/feishu/register", FeishuRegister)
+		// projects + workspace
+		api.Group("/projects", func(projects *ghttp.RouterGroup) {
+			projects.GET("/", GetProjects)
+			projects.POST("/select", SelectProject)
+			projects.POST("/create", CreateProject)
+			projects.GET("/browse", BrowseProjects)
+			projects.POST("/order", ProjectAction)
+			projects.POST("/manage", ProjectAction)
+		})
+		api.Group("/workspace", func(ws *ghttp.RouterGroup) {
+			ws.GET("/meta", WorkspaceMeta)
+			ws.GET("/tree", WorkspaceTree)
+			ws.GET("/search", WorkspaceSearch)
+			ws.GET("/resolve", WorkspaceResolve)
+		})
+		api.GET("/file", ServeFile)
+		api.GET("/media", ServeMedia)
 
-	// scheduler
-	s.BindHandler("GET:/api/scheduler", GetScheduler)
-	s.BindHandler("POST:/api/scheduler/run", SchedulerRun)
-	s.BindHandler("POST:/api/scheduler/toggle", SchedulerToggle)
-	s.BindHandler("POST:/api/scheduler/update", SchedulerUpdate)
-	s.BindHandler("POST:/api/scheduler/delete", SchedulerDelete)
+		// tools / skills / memory / knowledge
+		api.GET("/tools", GetTools)
+		api.Group("/skills", func(skills *ghttp.RouterGroup) {
+			skills.GET("/", GetSkills)
+			skills.POST("/", ToggleSkill)
+		})
+		api.Group("/memory", func(mem *ghttp.RouterGroup) {
+			mem.GET("/", GetMemory)
+			mem.GET("/content", GetMemoryContent)
+		})
+		api.Group("/knowledge", func(knowledge *ghttp.RouterGroup) {
+			knowledge.GET("/list", KnowledgeList)
+			knowledge.GET("/read", KnowledgeRead)
+			knowledge.GET("/graph", KnowledgeGraph)
+			knowledge.POST("/action", KnowledgeAction)
+			knowledge.POST("/import", KnowledgeImport)
+		})
 
-	// voice + logs
-	s.BindHandler("POST:/api/voice/asr", VoiceAsr)
-	s.BindHandler("POST:/api/voice/tts", VoiceTts)
-	s.BindHandler("GET:/api/logs", LogsStream)
-	s.BindHandler("GET:/api/logs/download", LogsDownload)
+		// channels
+		api.Group("/channels", func(channels *ghttp.RouterGroup) {
+			channels.GET("/", GetChannels)
+			channels.POST("/", ChannelsAction)
+		})
+		api.GET("/weixin/qrlogin", WeixinQr)
+		api.POST("/weixin/qrlogin", WeixinQr)
+		api.GET("/feishu/register", FeishuRegister)
+		api.POST("/feishu/register", FeishuRegister)
+
+		// scheduler
+		api.Group("/scheduler", func(scheduler *ghttp.RouterGroup) {
+			scheduler.GET("/", GetScheduler)
+			scheduler.POST("/run", SchedulerRun)
+			scheduler.POST("/toggle", SchedulerToggle)
+			scheduler.POST("/update", SchedulerUpdate)
+			scheduler.POST("/delete", SchedulerDelete)
+		})
+
+		// voice + logs
+		api.Group("/voice", func(voice *ghttp.RouterGroup) {
+			voice.POST("/asr", VoiceAsr)
+			voice.POST("/tts", VoiceTts)
+		})
+		api.Group("/logs", func(logs *ghttp.RouterGroup) {
+			logs.GET("/", LogsStream)
+			logs.GET("/download", LogsDownload)
+		})
+	})
 }
