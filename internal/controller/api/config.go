@@ -67,6 +67,7 @@ func buildEditableKeys() []string {
 		consts.CfgImageAPIKey, consts.CfgImageAPIBase, consts.CfgImageSize,
 		consts.CfgImageQuality, consts.CfgImageMaxPerCall, consts.CfgImageTimeoutSec,
 		consts.CfgImageFallback, consts.CfgImageOutputDir,
+		consts.CfgDisabledSkills,
 		consts.CfgCharacterDesc, consts.CfgTemperature, consts.CfgTopP, consts.CfgFrequencyPenalty,
 		consts.CfgPresencePenalty, consts.CfgRequestTimeout, consts.CfgProxy,
 		consts.CfgAgent, consts.CfgAgentMaxContextTokens, consts.CfgAgentMaxContextTurns,

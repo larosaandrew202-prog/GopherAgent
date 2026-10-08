@@ -17,6 +17,7 @@ import (
 	"GopherAgent/internal/logic/llm"
 	"GopherAgent/internal/logic/memory"
 	"GopherAgent/internal/logic/paths"
+	"GopherAgent/internal/logic/skills"
 	"GopherAgent/internal/logic/tools"
 )
 
@@ -398,6 +399,12 @@ func buildMessages(history []Message) []llm.Message {
 		}
 		system += "# Long-term memory (MEMORY.md)\n" + mem
 	}
+	if sk := skillsContext(); sk != "" {
+		if system != "" {
+			system += "\n\n"
+		}
+		system += sk
+	}
 	if system != "" {
 		out = append(out, llm.TextMessage(consts.RoleSystem, system))
 	}
@@ -425,6 +432,17 @@ func memoryContext() string {
 		content = content[:maxChars]
 	}
 	return content
+}
+
+// skillsContext renders the workspace skills (minus the disabled ones) for the
+// system prompt, telling the model to read each SKILL.md before acting. It
+// returns "" when there are none.
+func skillsContext() string {
+	all := skills.Load(paths.Workspace())
+	if len(all) == 0 {
+		return ""
+	}
+	return skills.Prompt(skills.Enabled(all, skills.Disabled()))
 }
 
 func sampleOptions() llm.Options {
