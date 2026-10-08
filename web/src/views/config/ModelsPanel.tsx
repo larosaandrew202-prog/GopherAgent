@@ -655,9 +655,11 @@ function CapabilityCard({
           ) : null}
 
           {def.id === 'embedding' && cap.current_dim ? (
-            <p className="text-xs text-slate-400 dark:text-slate-500">
-              <AppIcon className="fas fa-cube text-[10px] mr-1" />
-              {t('models_dim_label')}: <span className="font-mono">{cap.current_dim}</span>
+            <p className="flex items-center gap-1.5 text-xs text-slate-400 dark:text-slate-500">
+              <AppIcon className="fas fa-cube text-[10px]" />
+              <span>
+                {t('models_dim_label')}: <span className="font-mono">{cap.current_dim}</span>
+              </span>
             </p>
           ) : null}
 
@@ -724,8 +726,10 @@ function SearchSummary({
               title={t('models_search_edit_hint')}
               onClick={() => onEdit(r)}
             >
-              <AppIcon className="fas fa-check text-[10px] mr-1" />
-              {labelOf(r.label, lang)}
+              <span className="inline-flex items-center gap-1">
+                <AppIcon className="fas fa-check text-[10px]" />
+                {labelOf(r.label, lang)}
+              </span>
             </Tag>
           ))}
         </>
@@ -735,8 +739,10 @@ function SearchSummary({
           style={{ cursor: 'pointer', margin: 0 }}
           onClick={onAdd}
         >
-          <AppIcon className="fas fa-plus text-[10px] mr-1" />
-          {t('models_search_add_provider')}
+          <span className="inline-flex items-center gap-1">
+            <AppIcon className="fas fa-plus text-[10px]" />
+            {t('models_search_add_provider')}
+          </span>
         </Tag>
       ) : null}
     </div>
@@ -1389,8 +1395,10 @@ export function ModelsPanel() {
             <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">{t('models_section_vendors_desc')}</p>
           </div>
           <PrimaryButton className="!px-3 !py-1.5 !text-xs" onClick={() => setVendorModal({ providerId: '' })}>
-            <AppIcon className="fas fa-plus text-[10px] mr-1.5" />
-            {t('models_add_vendor')}
+            <span className="inline-flex items-center gap-1.5">
+              <AppIcon className="fas fa-plus text-[10px]" />
+              {t('models_add_vendor')}
+            </span>
           </PrimaryButton>
         </div>
         {configuredProviders.length === 0 ? (
