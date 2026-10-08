@@ -48,9 +48,9 @@ type SendResult struct {
 var ErrNoAPIKey = fmt.Errorf("no API key configured")
 
 // publisher emits one agent event; it is nil-safe.
-type publisher func(event map[string]interface{})
+type publisher func(event StreamEvent)
 
-func (p publisher) emit(event map[string]interface{}) {
+func (p publisher) emit(event StreamEvent) {
 	if p != nil {
 		p(event)
 	}
@@ -145,30 +145,30 @@ type agentOutcome struct {
 // runAgent runs the tool loop and publishes SSE events.
 func runAgent(ctx context.Context, requestID, sessionID string, session *Session) {
 	defer defaultHub.Finish(requestID)
-	pub := publisher(func(event map[string]interface{}) { defaultHub.Publish(requestID, event) })
+	pub := publisher(func(event StreamEvent) { defaultHub.Publish(requestID, event) })
 
 	outcome, err := runAgentLoop(ctx, sessionID, session, pub)
 	if err != nil {
 		if ctx.Err() != nil {
-			pub.emit(map[string]interface{}{"type": consts.EventCancelled})
+			pub.emit(StreamEvent{Type: consts.EventCancelled})
 		} else {
-			pub.emit(map[string]interface{}{"type": consts.EventError, "message": err.Error()})
+			pub.emit(StreamEvent{Type: consts.EventError, Message: err.Error()})
 		}
 		return
 	}
 
-	pub.emit(map[string]interface{}{
-		"type":       consts.EventDone,
-		"content":    outcome.Content,
-		"session_id": sessionID,
-		"model":      outcome.Model,
-		"usage": map[string]int{
-			"prompt_tokens":     outcome.Usage.PromptTokens,
-			"completion_tokens": outcome.Usage.CompletionTokens,
-			"total_tokens":      outcome.Usage.TotalTokens,
+	pub.emit(StreamEvent{
+		Type:      consts.EventDone,
+		Content:   outcome.Content,
+		SessionID: sessionID,
+		Model:     outcome.Model,
+		Usage: &TokenUsage{
+			PromptTokens:     outcome.Usage.PromptTokens,
+			CompletionTokens: outcome.Usage.CompletionTokens,
+			TotalTokens:      outcome.Usage.TotalTokens,
 		},
 	})
-	pub.emit(map[string]interface{}{"type": consts.EventStreamEnd})
+	pub.emit(StreamEvent{Type: consts.EventStreamEnd})
 	go maybeFlushMemory(context.Background(), sessionID)
 }
 
@@ -208,11 +208,11 @@ func runAgentLoop(ctx context.Context, sessionID string, session *Session, pub p
 	}
 
 	onDelta := func(delta string) error {
-		pub.emit(map[string]interface{}{"type": consts.EventDelta, "content": delta})
+		pub.emit(StreamEvent{Type: consts.EventDelta, Content: delta})
 		return nil
 	}
 	onReasoning := func(reasoning string) error {
-		pub.emit(map[string]interface{}{"type": consts.EventReasoning, "content": reasoning})
+		pub.emit(StreamEvent{Type: consts.EventReasoning, Content: reasoning})
 		return nil
 	}
 
@@ -259,12 +259,12 @@ func runAgentLoop(ctx context.Context, sessionID string, session *Session, pub p
 			if parsed := map[string]interface{}{}; json.Unmarshal([]byte(call.Function.Arguments), &parsed) == nil {
 				args = parsed
 			}
-			pub.emit(map[string]interface{}{
-				"type":         consts.EventToolStart,
-				"tool_call_id": call.ID,
-				"name":         name,
-				"args":         args,
-				"content":      name,
+			pub.emit(StreamEvent{
+				Type:       consts.EventToolStart,
+				ToolCallID: call.ID,
+				Name:       name,
+				Args:       args,
+				Content:    name,
 			})
 
 			res, execErr := registry.ExecuteFull(ctx, name, call.Function.Arguments, execCtx)
@@ -281,18 +281,18 @@ func runAgentLoop(ctx context.Context, sessionID string, session *Session, pub p
 			if strings.TrimSpace(out) == "" {
 				out = "(no output)"
 			}
-			pub.emit(map[string]interface{}{
-				"type":         consts.EventToolEnd,
-				"tool_call_id": call.ID,
-				"name":         name,
-				"result":       out,
-				"status":       status,
+			pub.emit(StreamEvent{
+				Type:       consts.EventToolEnd,
+				ToolCallID: call.ID,
+				Name:       name,
+				Result:     out,
+				Status:     status,
 			})
 			if len(res.Media) > 0 {
-				pub.emit(map[string]interface{}{
-					"type":         consts.EventToolMedia,
-					"tool_call_id": call.ID,
-					"media":        mediaPayload(res.Media),
+				pub.emit(StreamEvent{
+					Type:       consts.EventToolMedia,
+					ToolCallID: call.ID,
+					Media:      mediaPayload(res.Media),
 				})
 				generatedMedia = append(generatedMedia, res.Media...)
 			}
@@ -304,15 +304,10 @@ func runAgentLoop(ctx context.Context, sessionID string, session *Session, pub p
 }
 
 // mediaPayload serialises generated media for the tool_media SSE event.
-func mediaPayload(media []tools.Media) []map[string]interface{} {
-	out := make([]map[string]interface{}, 0, len(media))
+func mediaPayload(media []tools.Media) []StreamMedia {
+	out := make([]StreamMedia, 0, len(media))
 	for _, m := range media {
-		out = append(out, map[string]interface{}{
-			"path": m.Path,
-			"type": m.Type,
-			"mime": m.MIME,
-			"url":  m.URL,
-		})
+		out = append(out, StreamMedia{Path: m.Path, Type: m.Type, MIME: m.MIME, URL: m.URL})
 	}
 	return out
 }
