@@ -12,6 +12,8 @@ export function Sidebar() {
   const { t } = useI18n();
   const { view, navigateTo, sidebarOpen, closeSidebar } = useUI();
   const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
+  const [animating, setAnimating] = useState(false);
+  const animTimer = useRef(0);
   const asideRef = useRef<HTMLElement>(null);
   const [size, setSize] = useState({ w: 0, h: 0 });
 
@@ -25,6 +27,8 @@ export function Sidebar() {
     return () => ro.disconnect();
   }, []);
 
+  useEffect(() => () => window.clearTimeout(animTimer.current), []);
+
   const glass = useLiquidGlass({ width: size.w, height: size.h, ring: 28, pull: 20, blur: 8 });
 
   // Liquid-glass highlight that slides to whichever menu item is active.
@@ -36,6 +40,14 @@ export function Sidebar() {
     const compute = () => {
       const active = nav.querySelector<HTMLElement>('.sidebar-item.active');
       if (!active) return;
+      // When the active item's group is collapsed the item is clipped but still
+      // in the DOM, so hide the highlight instead of leaving it floating at the
+      // clipped item's position.
+      const group = active.closest('.menu-group');
+      if (group && !group.classList.contains('open')) {
+        setInd({ top: 0, left: 0, width: 0, height: 0 });
+        return;
+      }
       const nr = nav.getBoundingClientRect();
       const ar = active.getBoundingClientRect();
       setInd({
@@ -46,11 +58,21 @@ export function Sidebar() {
       });
     };
     compute();
-    // Re-align once the group collapse/expand max-height animation settles.
-    const timer = window.setTimeout(compute, 380);
+    // Re-align once the collapse/expand animation has settled.
+    const timer = window.setTimeout(compute, 340);
     return () => window.clearTimeout(timer);
   }, [view, collapsed, size.w, size.h]);
   const indicatorGlass = useLiquidGlass({ width: ind.width, height: ind.height, ring: 14, pull: 7, blur: 5 });
+
+  // Toggling a group moves the layout behind the glass highlight. Suspend the
+  // highlight while it animates so its SVG backdrop-filter is not re-evaluated
+  // every frame (the source of the stutter), then let it settle.
+  const toggleGroup = (key: string, isOpen: boolean) => {
+    setCollapsed((c) => ({ ...c, [key]: isOpen }));
+    setAnimating(true);
+    window.clearTimeout(animTimer.current);
+    animTimer.current = window.setTimeout(() => setAnimating(false), 320);
+  };
 
   return (
     <>
@@ -88,13 +110,14 @@ export function Sidebar() {
                 <Button
                   type="text"
                   block
-                  onClick={() => setCollapsed((c) => ({ ...c, [group.key]: isOpen }))}
+                  onClick={() => toggleGroup(group.key, isOpen)}
                   className="!h-auto !justify-start !gap-2 !px-3 !py-2 text-xs font-semibold uppercase tracking-wider text-slate-500 hover:!text-slate-800 dark:text-neutral-500 dark:hover:!text-neutral-300"
                 >
                   <AppIcon className="fas fa-chevron-right text-[10px] chevron" />
                   <span>{t(group.labelKey)}</span>
                 </Button>
-                <div className="menu-group-items pl-2">
+                <div className="menu-group-items">
+                  <div className="menu-group-items-inner pl-2">
                   {group.views.map((viewId) => {
                     const meta = VIEW_META[viewId];
                     const Icon = meta.icon;
@@ -119,6 +142,7 @@ export function Sidebar() {
                       </a>
                     );
                   })}
+                  </div>
                 </div>
               </div>
             );
@@ -129,6 +153,9 @@ export function Sidebar() {
               className="sidebar-glass-indicator"
               style={{
                 ...indicatorGlass.style,
+                ...(animating
+                  ? { backdropFilter: 'none', WebkitBackdropFilter: 'none', opacity: 0 }
+                  : null),
                 transform: `translate(${ind.left}px, ${ind.top}px)`,
                 width: ind.width,
                 height: ind.height,

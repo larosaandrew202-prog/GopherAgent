@@ -84,7 +84,8 @@
     transition:
         transform 0.34s cubic-bezier(0.22, 1, 0.36, 1),
         width 0.34s ease,
-        height 0.34s ease;
+        height 0.34s ease,
+        opacity 0.18s ease;
 }
 .dark .sidebar-glass-indicator {
     background: linear-gradient(180deg, rgba(255, 255, 255, 0.16), rgba(64, 150, 255, 0.22));
@@ -477,8 +478,16 @@
 }
 
 /* Menu Groups */
-.menu-group-items { max-height: 0; overflow: hidden; transition: max-height 0.25s ease-out; }
-.menu-group.open .menu-group-items { max-height: 2000px; transition: max-height 0.35s ease-in; }
+/* Collapse with animated grid rows so height eases to the exact content size.
+   A max-height hack instead stutters: the element's height stays at the content
+   size until max-height falls below it, so it looks stuck then snaps shut. */
+.menu-group-items {
+    display: grid;
+    grid-template-rows: 0fr;
+    transition: grid-template-rows 0.26s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.menu-group.open .menu-group-items { grid-template-rows: 1fr; }
+.menu-group-items > .menu-group-items-inner { overflow: hidden; min-height: 0; }
 .menu-group .chevron { transition: transform 0.25s ease; }
 .menu-group.open .chevron { transform: rotate(90deg); }
 
