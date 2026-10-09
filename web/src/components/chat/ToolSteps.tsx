@@ -1,5 +1,4 @@
 import { AppIcon } from '@/components/ui/AppIcon';
-import { GlassSurface } from '@/components/ui/LiquidGlass';
 import { useState } from 'react';
 import { Button } from 'antd';
 import type { ToolStep } from '@/api/types';
@@ -44,7 +43,7 @@ function ToolItem({ step }: { step: ToolStep }) {
     typeof step.result === 'string' ? step.result : step.result ? JSON.stringify(step.result, null, 2) : '';
 
   return (
-    <GlassSurface className={classNames('agent-step', running && 'tool-streaming')} ring={12} pull={6} blur={8}>
+    <div className={classNames('agent-step', running && 'tool-streaming')}>
       <Button
         type="text"
         block
@@ -73,7 +72,7 @@ function ToolItem({ step }: { step: ToolStep }) {
           ) : null}
         </div>
       ) : null}
-    </GlassSurface>
+    </div>
   );
 }
 
@@ -85,7 +84,7 @@ export function ToolSteps({ reason, steps }: { reason?: string; steps?: ToolStep
   return (
     <div className="agent-steps">
       {reason ? (
-        <GlassSurface className={classNames('agent-step agent-thinking-step', thinkingOpen && 'expanded')} ring={12} pull={6} blur={8}>
+        <div className={classNames('agent-step agent-thinking-step', thinkingOpen && 'expanded')}>
           <Button
             type="text"
             block
@@ -101,7 +100,7 @@ export function ToolSteps({ reason, steps }: { reason?: string; steps?: ToolStep
               <Markdown content={reason} />
             </div>
           ) : null}
-        </GlassSurface>
+        </div>
       ) : null}
       {steps?.map((step, i) => (
         <ToolItem key={step.tool_call_id ?? `${step.name}-${i}`} step={step} />

@@ -6,7 +6,6 @@ import { Header } from './Header';
 import { SessionPanel } from './SessionPanel';
 import { LoginOverlay } from './LoginOverlay';
 import { ModalHost } from './ModalHost';
-import { CursorGlass } from '@/components/ui/CursorGlass';
 import { ChatView } from '@/components/chat/ChatView';
 import { ConfigView } from '@/views/config/ConfigView';
 import { SkillsView } from '@/views/skills/SkillsView';
@@ -49,7 +48,6 @@ export function Shell() {
     <>
       <LoginOverlay />
       <div id="app" className={hidden ? 'hidden' : 'relative flex h-screen'}>
-        <div aria-hidden="true" className="sidebar-ambient pointer-events-none absolute left-2 top-2 bottom-2 w-52 rounded-2xl" />
         <Sidebar />
         <SessionPanel />
         <div id="main-content" className="flex-1 flex flex-col min-w-0 h-screen">
@@ -60,7 +58,6 @@ export function Shell() {
             </div>
           </div>
         </div>
-        <CursorGlass />
       </div>
       <ModalHost />
     </>
