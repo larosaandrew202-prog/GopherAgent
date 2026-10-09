@@ -210,6 +210,16 @@ const (
 	CfgImageOutputDir  = "image_output_dir"
 )
 
+// Redis configuration keys. Redis is optional; when it is disabled all
+// coordination state stays in-process (single-node behaviour).
+const (
+	CfgRedisEnabled  = "redis_enabled"
+	CfgRedisAddr     = "redis_addr"
+	CfgRedisPassword = "redis_password"
+	CfgRedisDB       = "redis_db"
+	CfgRedisPrefix   = "redis_prefix"
+)
+
 // Memory chunk scopes and sources.
 const (
 	MemoryScopeShared   = "shared"

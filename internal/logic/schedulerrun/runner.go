@@ -5,12 +5,14 @@ package schedulerrun
 
 import (
 	"context"
+	"strconv"
 	"time"
 
 	"github.com/gogf/gf/v2/frame/g"
 
 	"GopherAgent/internal/consts"
 	chatlogic "GopherAgent/internal/logic/chat"
+	"GopherAgent/internal/logic/redisx"
 	"GopherAgent/internal/logic/scheduler"
 )
 
@@ -41,8 +43,32 @@ func runDue(ctx context.Context) {
 		return
 	}
 	for _, task := range tasks {
+		if !acquireTaskLock(ctx, task) {
+			continue
+		}
 		runTask(ctx, task)
 	}
+}
+
+// acquireTaskLock claims one run of a due task so that, across instances, each
+// scheduled occurrence is executed exactly once. Without Redis (single node) it
+// always succeeds. The lock key includes NextRunAt so every occurrence gets a
+// distinct slot.
+func acquireTaskLock(ctx context.Context, task scheduler.Task) bool {
+	rdb := redisx.Client()
+	if rdb == nil {
+		return true
+	}
+	key := redisx.Key("lock", "task", task.ID, strconv.FormatInt(task.NextRunAt, 10))
+	ok, err := rdb.SetNX(ctx, key, "1", 5*time.Minute).Result()
+	if err != nil {
+		g.Log().Warningf(ctx, "scheduler: lock error for task %s, running anyway: %v", task.ID, err)
+		return true
+	}
+	if !ok {
+		g.Log().Debugf(ctx, "scheduler: task %s occurrence already claimed elsewhere", task.ID)
+	}
+	return ok
 }
 
 // RunNow executes a task immediately (used by the console "run" button).

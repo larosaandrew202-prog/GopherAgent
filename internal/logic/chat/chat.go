@@ -9,7 +9,6 @@ import (
 	"fmt"
 	"regexp"
 	"strings"
-	"sync"
 	"time"
 
 	"GopherAgent/internal/consts"
@@ -73,7 +72,7 @@ func Send(ctx context.Context, req SendRequest) (*SendResult, error) {
 	lower := strings.ToLower(message)
 	switch {
 	case lower == consts.CommandCancel:
-		defaultHub.Cancel(sessionID, "")
+		Cancel(ctx, sessionID, "")
 		return &SendResult{InlineReply: "已取消"}, nil
 	case strings.HasPrefix(lower, consts.CommandMemory):
 		return handleMemoryCommand(ctx, message), nil
@@ -105,7 +104,7 @@ func Send(ctx context.Context, req SendRequest) (*SendResult, error) {
 		}
 	}
 
-	requestID, reqCtx := defaultHub.NewRequest(sessionID)
+	requestID, reqCtx := HubInstance().NewRequest(ctx, sessionID)
 	go runAgent(reqCtx, requestID, sessionID, session)
 
 	return &SendResult{RequestID: requestID, Stream: true}, nil
@@ -113,7 +112,7 @@ func Send(ctx context.Context, req SendRequest) (*SendResult, error) {
 
 // Cancel cancels an in-flight request.
 func Cancel(ctx context.Context, sessionID, requestID string) bool {
-	return defaultHub.Cancel(sessionID, requestID)
+	return HubInstance().Cancel(ctx, sessionID, requestID)
 }
 
 // RunTask runs one agent turn synchronously (used by the scheduler) and returns
@@ -145,8 +144,8 @@ type agentOutcome struct {
 
 // runAgent runs the tool loop and publishes SSE events.
 func runAgent(ctx context.Context, requestID, sessionID string, session *Session) {
-	defer defaultHub.Finish(requestID)
-	pub := publisher(func(event StreamEvent) { defaultHub.Publish(requestID, event) })
+	defer HubInstance().Finish(ctx, requestID)
+	pub := publisher(func(event StreamEvent) { HubInstance().Publish(ctx, requestID, event) })
 
 	outcome, err := runAgentLoop(ctx, sessionID, session, pub)
 	if err != nil {
@@ -520,11 +519,6 @@ func attachmentRefs(atts []Attachment) string {
 // long-term memory
 // ---------------------------------------------------------------------------
 
-var (
-	flushMu     sync.Mutex
-	flushedUpTo = map[string]int64{}
-)
-
 // handleMemoryCommand handles the /memory slash command.
 func handleMemoryCommand(ctx context.Context, message string) *SendResult {
 	parts := strings.Fields(strings.TrimSpace(message))
@@ -570,14 +564,11 @@ func maybeFlushMemory(ctx context.Context, sessionID string) {
 	if err != nil {
 		return
 	}
-	flushMu.Lock()
-	last := flushedUpTo[sessionID]
+	last := flushWatermark(ctx, sessionID)
 	if total-last < int64(threshold*2) {
-		flushMu.Unlock()
 		return
 	}
-	flushedUpTo[sessionID] = total
-	flushMu.Unlock()
+	setFlushWatermark(ctx, sessionID, total)
 
 	summary, err := summarizeSession(ctx, sessionID, threshold)
 	if err != nil || strings.TrimSpace(summary) == "" {
