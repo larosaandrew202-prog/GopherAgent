@@ -1,0 +1,20 @@
+{
+  "redis_enabled": true,
+  "redis_addr": "127.0.0.1:6379",
+  "redis_password": "",
+  "redis_db": 0,
+  "redis_prefix": "gopher:",
+
+  "model": "deepseek-v4-flash",
+  "bot_type": "",
+  "deepseek_api_key": "",
+  "open_ai_api_key": "",
+  "web_password": "",
+  "agent_workspace": "",
+  "agent_permission_mode": "full_access",
+
+  "image_enabled": false,
+  "image_provider": "auto",
+  "image_model": "",
+  "image_api_key": ""
+}

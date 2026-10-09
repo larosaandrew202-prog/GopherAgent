@@ -2,14 +2,17 @@ package api
 
 import (
 	"GopherAgent/utility"
+	"context"
 	"crypto/sha256"
 	"encoding/hex"
 	"net/http"
+	"time"
 
 	"github.com/gogf/gf/v2/net/ghttp"
 
 	"GopherAgent/internal/consts"
 	"GopherAgent/internal/logic/config"
+	"GopherAgent/internal/logic/redisx"
 )
 
 const (
@@ -25,6 +28,47 @@ func authEnabled() bool {
 func authToken(password string) string {
 	sum := sha256.Sum256([]byte(authTokenPrefix + password))
 	return hex.EncodeToString(sum[:])
+}
+
+// Login brute-force guard: at most loginMaxFailures wrong passwords per client
+// IP within loginFailTTL. Backed by Redis; a no-op when Redis is disabled.
+const (
+	loginFailTTL     = 10 * time.Minute
+	loginMaxFailures = 5
+)
+
+func loginFailKey(ip string) string { return redisx.Key("login", "fail", ip) }
+
+func loginBlocked(ctx context.Context, ip string) bool {
+	rdb := redisx.Client()
+	if rdb == nil || ip == "" {
+		return false
+	}
+	n, err := rdb.Get(ctx, loginFailKey(ip)).Int()
+	if err != nil {
+		return false
+	}
+	return n >= loginMaxFailures
+}
+
+func noteLoginFailure(ctx context.Context, ip string) {
+	rdb := redisx.Client()
+	if rdb == nil || ip == "" {
+		return
+	}
+	key := loginFailKey(ip)
+	pipe := rdb.Pipeline()
+	pipe.Incr(ctx, key)
+	pipe.Expire(ctx, key, loginFailTTL)
+	_, _ = pipe.Exec(ctx)
+}
+
+func clearLoginFailures(ctx context.Context, ip string) {
+	rdb := redisx.Client()
+	if rdb == nil || ip == "" {
+		return
+	}
+	_ = rdb.Del(ctx, loginFailKey(ip)).Err()
 }
 
 func authValid(r *ghttp.Request) bool {
@@ -69,11 +113,19 @@ func AuthLogin(r *ghttp.Request) {
 	}
 	_ = parseBody(r, &body)
 
+	ip := r.GetClientIp()
+	if loginBlocked(r.Context(), ip) {
+		writeJSON(r, map[string]interface{}{"status": consts.StatusError, "ok": false, "error": "Too many failed attempts, try again later"})
+		return
+	}
+
 	expected := config.C().GetString(consts.CfgWebPassword)
 	if utility.MD5WithSalt(body.Password, consts.PasswordSalt) != expected {
+		noteLoginFailure(r.Context(), ip)
 		writeJSON(r, map[string]interface{}{"status": consts.StatusError, "ok": false, "error": "Wrong password"})
 		return
 	}
+	clearLoginFailures(r.Context(), ip)
 	token := authToken(expected)
 	cookie := &http.Cookie{
 		Name:     authCookieName,

@@ -14,9 +14,11 @@ import (
 
 	"GopherAgent/internal/consts"
 	"GopherAgent/internal/controller/api"
+	chatlogic "GopherAgent/internal/logic/chat"
 	configlogic "GopherAgent/internal/logic/config"
 	memorylogic "GopherAgent/internal/logic/memory"
 	"GopherAgent/internal/logic/paths"
+	"GopherAgent/internal/logic/redisx"
 	"GopherAgent/internal/logic/schedulerrun"
 	skillslogic "GopherAgent/internal/logic/skills"
 	"GopherAgent/internal/store"
@@ -36,6 +38,15 @@ var (
 			port := configlogic.C().GetInt(consts.CfgWebPort, 9899)
 			g.Log().Infof(ctx, "GopherAgent database: %s", store.Path())
 			g.Log().Infof(ctx, "GopherAgent listening on :%d", port)
+
+			// Optional Redis: when enabled and reachable it backs the chat event
+			// bus, memory-flush watermarks, scheduler locking and login limiting.
+			if err := redisx.Init(ctx); err != nil {
+				g.Log().Warningf(ctx, "redis disabled, falling back to in-memory state: %v", err)
+			} else if redisx.Enabled() {
+				g.Log().Infof(ctx, "redis connected: %s (prefix %s)", redisx.Addr(), redisx.Prefix())
+			}
+			chatlogic.InitBus(ctx)
 
 			memorylogic.EnsureFiles()
 			if err := skillslogic.EnsureGuide(paths.Workspace()); err != nil {

@@ -101,8 +101,6 @@ type Hub struct {
 	janitor   sync.Once
 }
 
-var defaultHub = newHub()
-
 func newHub() *Hub {
 	return &Hub{
 		streams:   make(map[string]*streamState),
@@ -112,7 +110,7 @@ func newHub() *Hub {
 }
 
 // NewRequest registers a cancellable request and returns its id/context.
-func (h *Hub) NewRequest(sessionID string) (string, context.Context) {
+func (h *Hub) NewRequest(_ context.Context, sessionID string) (string, context.Context) {
 	h.janitor.Do(h.startJanitor)
 	ctx, cancel := context.WithCancel(context.Background())
 	id := guid.S()
@@ -133,7 +131,7 @@ func (h *Hub) NewRequest(sessionID string) (string, context.Context) {
 }
 
 // Publish appends an event to a request stream.
-func (h *Hub) Publish(id string, event StreamEvent) {
+func (h *Hub) Publish(_ context.Context, id string, event StreamEvent) {
 	h.mu.Lock()
 	state := h.streams[id]
 	h.mu.Unlock()
@@ -143,7 +141,7 @@ func (h *Hub) Publish(id string, event StreamEvent) {
 }
 
 // Finish marks a request stream complete and forgets its cancel.
-func (h *Hub) Finish(id string) {
+func (h *Hub) Finish(_ context.Context, id string) {
 	h.mu.Lock()
 	state := h.streams[id]
 	delete(h.cancels, id)
@@ -159,7 +157,7 @@ func (h *Hub) Finish(id string) {
 }
 
 // Cancel cancels the active request for a session (or a specific request id).
-func (h *Hub) Cancel(sessionID, requestID string) bool {
+func (h *Hub) Cancel(_ context.Context, sessionID, requestID string) bool {
 	h.mu.Lock()
 	id := requestID
 	if id == "" {
@@ -204,6 +202,3 @@ func (h *Hub) startJanitor() {
 		}
 	}()
 }
-
-// HubInstance exposes the process-wide hub.
-func HubInstance() *Hub { return defaultHub }

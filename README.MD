@@ -37,7 +37,8 @@ go run main.go
 curl http://localhost:9899/api/health
 ```
 
-首次启动自动创建数据库与默认配置，无需 `config.json`；数据目录可用 `GOPHER_DATA_DIR` 指定（默认当前工作目录）。
+首次启动自动创建数据库与默认配置；数据目录可用 `GOPHER_DATA_DIR` 指定（默认当前工作目录）。
+配置优先级：**`config.json`（可选，见下）> 数据库（控制台改）> 内置默认值**。
 
 **前端**
 
@@ -51,6 +52,48 @@ npm run build   # 产出 web/dist/
 ```
 
 后端已开启 CORS，前端无需 Vite 代理。
+
+## 🔧 配置
+
+三种方式，优先级 **`config.json` > 数据库（控制台改）> 内置默认值**：
+
+1. **控制台**：在网页里改，落到 SQLite `gopher_agent.db`，适合日常调整。
+2. **`config.json`**：数据目录下的 JSON，**已被 `.gitignore`，不会进仓库**；仓库只提交示例 `config.example.json`。**密钥建议放这里**：
+
+   ```bash
+   cp config.example.json config.json
+   # 编辑 config.json，填入 Redis 地址/密码、API Key 等
+   ```
+
+   只写需要覆盖的键即可，未写的键仍沿用数据库/默认值。
+3. **环境变量**：优先级最高，适合容器 / systemd。
+
+### Redis（可选）
+
+默认关闭；未配置时所有协调状态回退到进程内存，**单机部署完全不受影响**。启用后用于：
+SSE 事件总线（多实例可跨节点收发/取消）、记忆 flush 水位、调度器分布式锁、登录失败限流。
+
+```jsonc
+// config.json
+{
+  "redis_enabled": true,
+  "redis_addr": "127.0.0.1:6379",
+  "redis_password": "",
+  "redis_db": 0,
+  "redis_prefix": "gopher:"
+}
+```
+
+或环境变量（覆盖配置文件）：
+
+```bash
+export GOPHER_REDIS_ENABLED=1
+export GOPHER_REDIS_ADDR=127.0.0.1:6379
+export GOPHER_REDIS_PASSWORD=your-password
+```
+
+启动日志出现 `redis connected: <addr>` 与 `chat bus: redis (multi-node)` 即生效；
+连接失败会打 warning 并自动降级为内存实现。
 
 ## 🎨 图像生成
 
@@ -133,12 +176,14 @@ curl -X POST http://localhost:9899/config -H "Content-Type: application/json" -d
 ```
 GopherAgent/
 ├── main.go                    # 入口（go run main.go）
+├── config.example.json        # 配置示例（复制为 config.json，后者被 git 忽略）
 ├── internal/
 │   ├── cmd/cmd.go             # 启动、路由注册、CORS
 │   ├── store/sqlite.go        # SQLite 连接与建表
 │   ├── controller/api/        # 控制台接口
 │   └── logic/
 │       ├── config/            # 配置存储 + 供应商注册表 + 凭证解析
+│       ├── redisx/            # 可选 Redis 客户端（总线/水位/锁/限流）
 │       ├── llm/               # OpenAI 兼容客户端（流式 + function calling + 摘要）
 │       ├── embedding/         # 多厂商 OpenAI 兼容 embeddings
 │       ├── tools/             # shell / 文件 / web / memory / scheduler / image_gen
@@ -146,7 +191,7 @@ GopherAgent/
 │       ├── memory/            # 文件记忆：切块、混合检索、时间衰减
 │       ├── paths/             # agent 工作区解析
 │       ├── scheduler/ + schedulerrun/   # 定时任务存储与后台 worker
-│       └── chat/              # 会话/消息持久化、Agent 循环、SSE Hub
+│       └── chat/              # 会话/消息持久化、Agent 循环、SSE Hub（内存/Redis）
 ├── web/                       # 前端控制台（React + Vite + antd）
 └── image/                     # README 效果图
 ```

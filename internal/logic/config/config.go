@@ -8,6 +8,8 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"os"
+	"path/filepath"
 	"strings"
 	"sync"
 	"time"
@@ -27,6 +29,10 @@ var defaultTemplate []byte
 type Store struct {
 	mu   sync.RWMutex
 	data map[string]interface{}
+	// overlay holds keys read from the optional, git-ignored config.json at the
+	// data root. Overlaid keys win over the database and are never persisted to
+	// it, so secrets stay out of version control.
+	overlay map[string]interface{}
 }
 
 var (
@@ -95,7 +101,15 @@ func load() (*Store, error) {
 		data[key] = value
 	}
 
-	s := &Store{data: data}
+	// Optional runtime overlay: <data_root>/config.json (git-ignored). It wins
+	// over the database and the embedded defaults so operators can keep secrets
+	// such as the Redis password out of the repository.
+	overlay := readLocalOverlay()
+	for k, v := range overlay {
+		data[k] = v
+	}
+
+	s := &Store{data: data, overlay: overlay}
 	// Seed defaults on first run so the table is the source of truth.
 	if len(rows) == 0 {
 		if err := s.Save(); err != nil {
@@ -103,6 +117,27 @@ func load() (*Store, error) {
 		}
 	}
 	return s, nil
+}
+
+// LocalConfigPath returns the path of the optional runtime config overlay.
+func LocalConfigPath() string {
+	return filepath.Join(store.DataRoot(), "config.json")
+}
+
+// readLocalOverlay loads <data_root>/config.json when present. A missing file is
+// not an error; invalid JSON is logged and ignored.
+func readLocalOverlay() map[string]interface{} {
+	raw, err := os.ReadFile(LocalConfigPath())
+	if err != nil {
+		return nil
+	}
+	overlay := map[string]interface{}{}
+	if err := json.Unmarshal(raw, &overlay); err != nil {
+		g.Log().Warningf(context.Background(), "config.json is not valid JSON, ignoring: %v", err)
+		return nil
+	}
+	g.Log().Infof(context.Background(), "config: loaded %d key(s) from %s", len(overlay), LocalConfigPath())
+	return overlay
 }
 
 // Get returns the raw value for key, or nil when absent.
@@ -209,12 +244,20 @@ func (s *Store) Snapshot() map[string]interface{} {
 	return deepCopy(s.data).(map[string]interface{})
 }
 
-// Save upserts every in-memory key into the SQLite config table.
+// Save upserts every in-memory key into the SQLite config table. Keys supplied
+// by the git-ignored config.json overlay are skipped so their values (often
+// secrets) never land in the database.
 func (s *Store) Save() error {
 	snapshot := s.Snapshot()
+	s.mu.RLock()
+	overlay := s.overlay
+	s.mu.RUnlock()
 	now := time.Now().Unix()
 	rows := make([]g.Map, 0, len(snapshot))
 	for k, v := range snapshot {
+		if _, isOverlay := overlay[k]; isOverlay {
+			continue
+		}
 		encoded, err := json.Marshal(v)
 		if err != nil {
 			continue
@@ -228,7 +271,8 @@ func (s *Store) Save() error {
 	return err
 }
 
-// Reload re-reads configuration from the database, discarding in-memory changes.
+// Reload re-reads configuration from the database and the config.json overlay,
+// discarding in-memory changes.
 func (s *Store) Reload() {
 	fresh, err := load()
 	if err != nil {
@@ -237,6 +281,7 @@ func (s *Store) Reload() {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	s.data = fresh.data
+	s.overlay = fresh.overlay
 }
 
 // MaskKey masks the middle of a secret, keeping the first/last 4 characters.
