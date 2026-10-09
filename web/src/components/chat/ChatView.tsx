@@ -54,7 +54,7 @@ export function ChatView() {
     <>
       <div
         id="chat-main"
-        className={classNames('chat-main chat-ambient relative', dragActive && 'ws-drop-active')}
+        className={classNames('chat-main relative', dragActive && 'ws-drop-active')}
         onDragEnter={(e) => {
           e.preventDefault();
           dragCounter.current += 1;

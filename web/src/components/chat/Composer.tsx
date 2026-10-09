@@ -2,7 +2,6 @@ import { AppIcon } from '@/components/ui/AppIcon';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Button, Dropdown, Input, Tooltip, type MenuProps } from 'antd';
 import type { TextAreaRef } from 'antd/es/input/TextArea';
-import { GlassSurface } from '@/components/ui/LiquidGlass';
 import { api } from '@/api';
 import type { CapabilityState, ProviderOverview } from '@/api/types';
 import { useChat } from '@/store/chat';
@@ -292,7 +291,7 @@ export function Composer() {
   return (
     <div className="flex-shrink-0 border-t border-slate-200 dark:border-white/10 bg-white dark:bg-[#1F1F1F] px-4 py-3">
       <div className="max-w-3xl mx-auto">
-        <GlassSurface className="composer-card" ring={26} pull={16} blur={10}>
+        <div className="composer-card">
           {attachments.length ? (
             <div className="attachment-preview">
               {attachments.map((att, i) => (
@@ -458,7 +457,7 @@ export function Composer() {
               ))}
             </div>
           ) : null}
-        </GlassSurface>
+        </div>
         <div className="text-[11px] text-slate-400 dark:text-slate-600 mt-1.5 px-1 font-mono truncate">
           {sessionId}
         </div>

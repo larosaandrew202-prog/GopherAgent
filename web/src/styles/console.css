@@ -67,33 +67,6 @@
 .dark .sidebar-item.active { color: #FFFFFF; }
 .sidebar-item.active .item-icon { color: #1677ff; }
 
-/* Moving liquid-glass highlight that follows the active menu item. Its size,
-   position and backdrop-filter are set inline by Sidebar.tsx. */
-.sidebar-glass-indicator {
-    position: absolute;
-    top: 0;
-    left: 0;
-    z-index: 0;
-    margin: 0 !important;
-    pointer-events: none;
-    border-radius: 10px;
-    background: linear-gradient(180deg, rgba(255, 255, 255, 0.78), rgba(22, 119, 255, 0.18));
-    box-shadow:
-        inset 0 0 0 1px rgba(255, 255, 255, 0.7),
-        0 4px 14px rgba(22, 119, 255, 0.18);
-    transition:
-        transform 0.34s cubic-bezier(0.22, 1, 0.36, 1),
-        width 0.34s ease,
-        height 0.34s ease,
-        opacity 0.18s ease;
-}
-.dark .sidebar-glass-indicator {
-    background: linear-gradient(180deg, rgba(255, 255, 255, 0.16), rgba(64, 150, 255, 0.22));
-    box-shadow:
-        inset 0 0 0 1px rgba(255, 255, 255, 0.18),
-        0 6px 18px rgba(0, 0, 0, 0.45);
-}
-
 /* Session Panel */
 .session-panel {
     width: 220px;
@@ -601,20 +574,12 @@
     border-radius: 10px;
     border: 1px solid rgba(255, 255, 255, 0.55);
     background: rgba(255, 255, 255, 0.42);
-    backdrop-filter: blur(5px) saturate(140%);
-    -webkit-backdrop-filter: blur(5px) saturate(140%);
 }
 .dark .agent-step {
     border-color: rgba(255, 255, 255, 0.08);
     background: rgba(255, 255, 255, 0.04);
 }
 .agent-step:last-child { margin-bottom: 0; }
-/* Non-Chromium fallback for the glass tool cards (Chromium uses the inline
-   displacement filter supplied by GlassSurface). */
-.agent-step.glass-surface {
-    backdrop-filter: blur(6px) saturate(140%);
-    -webkit-backdrop-filter: blur(6px) saturate(140%);
-}
 
 /* Thinking step - collapsible */
 .agent-thinking-step .thinking-header {
@@ -2324,86 +2289,6 @@
         z-index: 46;
     }
     .workspace-resizer { display: none; }
-}
-
-/* ==========================================================================
-   Sidebar ambient light + liquid glass
-   --------------------------------------------------------------------------
-   The sidebar is a translucent frosted pane (backdrop-filter). To make the
-   refraction from the SVG displacement filter visible, a soft ambient gradient
-   sits behind it; `.sidebar-glass` is the blur() fallback for engines that do
-   not support `backdrop-filter: url()` (the inline url() takes over in
-   Chromium). Adapted from shuding/liquid-glass (MIT).
-   ========================================================================== */
-.sidebar-ambient {
-    background:
-        radial-gradient(120% 40% at 12% 6%, rgba(22, 119, 255, 0.32), transparent 60%),
-        radial-gradient(130% 36% at 108% 42%, rgba(22, 119, 255, 0.22), transparent 62%),
-        radial-gradient(120% 42% at 20% 92%, rgba(105, 177, 255, 0.26), transparent 62%);
-}
-.dark .sidebar-ambient {
-    background:
-        radial-gradient(120% 40% at 12% 6%, rgba(64, 150, 255, 0.45), transparent 60%),
-        radial-gradient(130% 36% at 108% 42%, rgba(22, 119, 255, 0.4), transparent 62%),
-        radial-gradient(120% 42% at 20% 92%, rgba(105, 177, 255, 0.34), transparent 62%);
-}
-.sidebar-glass {
-    backdrop-filter: blur(12px) saturate(160%);
-    -webkit-backdrop-filter: blur(12px) saturate(160%);
-}
-
-/* ==========================================================================
-   Liquid-glass chat bubbles (see LiquidGlass.tsx GlassSurface)
-   --------------------------------------------------------------------------
-   `.glass-surface` is the blur() fallback; Chromium layers the inline
-   `backdrop-filter: url(#filter)` on top. `.chat-ambient` gives the message
-   area a soft gradient backdrop so the bubble refraction is visible.
-   ========================================================================== */
-.glass-surface {
-    backdrop-filter: blur(14px) saturate(150%);
-    -webkit-backdrop-filter: blur(14px) saturate(150%);
-}
-.chat-ambient {
-    background:
-        radial-gradient(60% 40% at 15% 0%, rgba(22, 119, 255, 0.1), transparent 70%),
-        radial-gradient(50% 45% at 100% 100%, rgba(105, 177, 255, 0.12), transparent 70%);
-}
-.dark .chat-ambient {
-    background:
-        radial-gradient(60% 40% at 15% 0%, rgba(64, 150, 255, 0.14), transparent 70%),
-        radial-gradient(50% 45% at 100% 100%, rgba(22, 119, 255, 0.16), transparent 70%);
-}
-
-/* ==========================================================================
-   Cursor-following liquid glass lens (see CursorGlass.tsx)
-   --------------------------------------------------------------------------
-   A circular glass droplet that trails the pointer. Its backdrop-filter (url()
-   + a circular displacement map) is set inline; this rule supplies the rim,
-   specular sheen and shadow. pointer-events:none so it never blocks clicks.
-   Chromium-only, like the rest of the liquid-glass layer.
-   ========================================================================== */
-.cursor-glass {
-    position: fixed;
-    top: 0;
-    left: 0;
-    z-index: 60;
-    border-radius: 9999px;
-    pointer-events: none;
-    will-change: transform;
-    transition: opacity 0.25s ease;
-    /* Barely a tint — the lens should read as pure refracted glass. */
-    background: radial-gradient(circle at 34% 30%, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0) 55%);
-    box-shadow:
-        inset 0 1px 0 rgba(255, 255, 255, 0.28),
-        inset 0 0 0 1px rgba(255, 255, 255, 0.16),
-        0 8px 24px rgba(15, 23, 42, 0.10);
-}
-.dark .cursor-glass {
-    background: radial-gradient(circle at 34% 30%, rgba(255, 255, 255, 0.06), rgba(255, 255, 255, 0) 55%);
-    box-shadow:
-        inset 0 1px 0 rgba(255, 255, 255, 0.10),
-        inset 0 0 0 1px rgba(255, 255, 255, 0.08),
-        0 10px 28px rgba(0, 0, 0, 0.38);
 }
 
 /* ==========================================================================
