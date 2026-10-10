@@ -15,6 +15,8 @@
 #   CONTAINER_PORT   container port to expose  (default: 80)
 #   DATA_VOLUME      data volume name          (default: gopher-data)
 #   TZ_NAME          container timezone        (default: Asia/Shanghai)
+#   CONFIG_FILE      host config.json mounted read-only at /data/config.json
+#                    (default: /etc/gopher/config.json; set to "" to skip)
 #   TARGET           Docker build target       (default: "" = all-in-one runtime)
 #   BUILD_ARGS       extra `docker build` args (word-split)
 #   RUN_ARGS         extra `docker run` args   (word-split)
@@ -26,6 +28,7 @@ HOST_PORT="${HOST_PORT:-8080}"
 CONTAINER_PORT="${CONTAINER_PORT:-80}"
 DATA_VOLUME="${DATA_VOLUME:-gopher-data}"
 TZ_NAME="${TZ_NAME:-Asia/Shanghai}"
+CONFIG_FILE="${CONFIG_FILE:-/etc/gopher/config.json}"
 TARGET="${TARGET:-}"
 # shellcheck disable=SC2206
 BUILD_ARGS=(${BUILD_ARGS:-})
@@ -37,6 +40,7 @@ cd "$(dirname "$0")/.."
 
 green() { printf '\033[1;32m%s\033[0m\n' "$*"; }
 red() { printf '\033[1;31m%s\033[0m\n' "$*" >&2; }
+warn() { printf '\033[1;33m%s\033[0m\n' "$*" >&2; }
 
 if ! command -v docker >/dev/null 2>&1; then
     red "error: docker not found in PATH"
@@ -62,6 +66,17 @@ run=(
     -e "TZ=${TZ_NAME}"
     --restart unless-stopped
 )
+# Mount an operator-supplied config.json read-only at the data root. It overlays
+# the embedded defaults / SQLite and is the recommended home for Redis
+# credentials. Skipped (with a warning) when the file is absent so that docker
+# does not create a *directory* in its place.
+if [ -n "$CONFIG_FILE" ]; then
+    if [ -f "$CONFIG_FILE" ]; then
+        run+=(-v "${CONFIG_FILE}:/data/config.json:ro")
+    else
+        warn "warning: CONFIG_FILE '${CONFIG_FILE}' not found; mount skipped (container will use env vars / DB / built-in defaults)."
+    fi
+fi
 [ "${#RUN_ARGS[@]}" -gt 0 ] && run+=("${RUN_ARGS[@]}")
 run+=("$IMAGE")
 "${run[@]}"
