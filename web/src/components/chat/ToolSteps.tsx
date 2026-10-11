@@ -15,7 +15,6 @@ const TOOL_ICONS: Record<string, string> = {
   web_search: 'fa-magnifying-glass',
   vision: 'fa-eye',
   memory: 'fa-brain',
-  subagent: 'fa-robot',
 };
 
 function summarizeArgs(args: unknown): string {

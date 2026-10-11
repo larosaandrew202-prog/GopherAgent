@@ -141,7 +141,6 @@ const (
 	CfgAgentPermissionMode   = "agent_permission_mode"
 	CfgDisabledTools         = "disabled_tools"
 	CfgDisabledSkills        = "disabled_skills"
-	CfgSubagentEnabled       = "subagent_enabled"
 	CfgEnableThinking        = "enable_thinking"
 	CfgReasoningEffort       = "reasoning_effort"
 	CfgReasoningByModel      = "reasoning_effort_by_model"

@@ -214,9 +214,6 @@ export function ChatProvider({ children }: { children: ReactNode }) {
           }
           break;
         }
-        case 'subagent_step':
-          buf.steps.push({ type: 'tool', name: (event.name as string) ?? 'subagent', result: event, status: 'done' });
-          break;
         case 'tool_media': {
           const list = Array.isArray(event.media) ? (event.media as Array<Record<string, unknown>>) : [];
           for (const m of list) {

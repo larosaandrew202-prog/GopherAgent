@@ -177,7 +177,6 @@ export function ConfigView() {
   const [thinking, setThinking] = useState(false);
   const [reasoningEffort, setReasoningEffort] = useState('high');
   const [reasoningByModel, setReasoningByModel] = useState<Record<string, unknown>>({});
-  const [subagent, setSubagent] = useState(true);
   const [selfEvolution, setSelfEvolution] = useState(false);
   const [agentStatus, setAgentStatus] = useState<Status | null>(null);
 
@@ -242,7 +241,6 @@ export function ConfigView() {
     setMaxTurns(data.agent_max_context_turns || 20);
     setMaxSteps(data.agent_max_steps || 20);
     setThinking(data.enable_thinking === true);
-    setSubagent(data.subagent_enabled !== false);
     setSelfEvolution(data.self_evolution_enabled === true);
 
     setPermission((data.agent_permission_mode as PermissionMode) || 'full_access');
@@ -430,7 +428,6 @@ export function ConfigView() {
       agent_max_steps: maxSteps || 20,
       enable_thinking: thinking,
       reasoning_effort_by_model: merged,
-      subagent_enabled: subagent,
       self_evolution_enabled: selfEvolution,
     };
     const res = await api.saveConfig({ updates });
@@ -711,12 +708,6 @@ export function ConfigView() {
                       />
                     </Field>
                   ) : null}
-                  <ToggleRow
-                    label={t('config_subagent')}
-                    tipKey="config_subagent_hint"
-                    checked={subagent}
-                    onChange={setSubagent}
-                  />
                   <ToggleRow
                     label={t('config_self_evolution')}
                     tipKey="config_self_evolution_hint"
