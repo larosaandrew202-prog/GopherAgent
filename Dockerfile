@@ -76,8 +76,8 @@ RUN apt-get update \
  && rm -rf /var/lib/apt/lists/*
 WORKDIR /app
 COPY --from=go-builder /out/gopheragent /app/gopheragent
-RUN mkdir -p /app/manifest/config \
- && printf 'server:\n  openapiPath: "/api.json"\n  swaggerPath: "/swagger"\nlogger:\n  level: "all"\n  stdout: true\n' > /app/manifest/config/config.yaml
+RUN mkdir -p /app/manifest/config
+COPY manifest/config/config.example.yaml /app/manifest/config/config.yaml
 ENV GOPHER_DATA_DIR=/data
 RUN mkdir -p /data
 VOLUME ["/data"]
@@ -96,8 +96,8 @@ RUN apt-get update \
 
 WORKDIR /app
 COPY --from=go-builder /out/gopheragent /app/gopheragent
-RUN mkdir -p /app/manifest/config \
- && printf 'server:\n  openapiPath: "/api.json"\n  swaggerPath: "/swagger"\nlogger:\n  level: "all"\n  stdout: true\n' > /app/manifest/config/config.yaml
+RUN mkdir -p /app/manifest/config
+COPY manifest/config/config.example.yaml /app/manifest/config/config.yaml
 COPY --from=web-builder /src/web/dist /var/www/gopher-agent
 COPY docker/nginx.conf /etc/nginx/conf.d/gopher-agent.conf
 COPY docker/entrypoint.sh /usr/local/bin/entrypoint.sh

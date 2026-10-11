@@ -1,38 +1,32 @@
-// Package config implements the runtime configuration store for GopherAgent.
+// Package config is a thin, typed facade over GoFrame's configuration system.
 //
-// Values are persisted in the SQLite `config` table (key/value) and defaulted
-// from a bundled template, so the application runs with no config file.
+// All application settings live in a GoFrame config file (config.yaml). Reads go
+// through g.Cfg(), with an environment variable named after the key in
+// UPPER_SNAKE_CASE taking precedence (e.g. `web_port` -> WEB_PORT); writes go to
+// GoFrame's in-memory adapter and are flushed back to the config file by Save.
 package config
 
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 	"os"
-	"path/filepath"
 	"strings"
 	"sync"
-	"time"
 
+	"github.com/gogf/gf/v2/container/gvar"
 	"github.com/gogf/gf/v2/frame/g"
+	"github.com/gogf/gf/v2/os/gcfg"
+	"github.com/gogf/gf/v2/os/gfile"
+	"gopkg.in/yaml.v3"
 
 	"GopherAgent/internal/consts"
 	"GopherAgent/internal/store"
-
-	_ "embed"
 )
 
-//go:embed template/default.json
-var defaultTemplate []byte
-
-// Store is a concurrency-safe, SQLite-backed configuration store.
+// Store is the process-wide configuration facade. Its public API is kept stable
+// so callers do not depend on the underlying backend.
 type Store struct {
-	mu   sync.RWMutex
-	data map[string]interface{}
-	// overlay holds keys read from the optional, git-ignored config.json at the
-	// data root. Overlaid keys win over the database and are never persisted to
-	// it, so secrets stay out of version control.
-	overlay map[string]interface{}
+	mu sync.RWMutex
 }
 
 var (
@@ -40,23 +34,73 @@ var (
 	storeOnce sync.Once
 )
 
-// Init loads the configuration once. Safe to call multiple times.
+// Init prepares the configuration facade. It is idempotent and never fails
+// (GoFrame reads the config file lazily).
 func Init() error {
-	var err error
 	storeOnce.Do(func() {
-		if ierr := store.Init(); ierr != nil {
-			err = ierr
-			return
-		}
-		storeInst, err = load()
+		storeInst = &Store{}
+		ensureConfigFile()
+		migrateLegacy()
 	})
-	if err != nil {
-		return err
-	}
-	if storeInst == nil {
-		return fmt.Errorf("config store initialisation failed")
-	}
 	return nil
+}
+
+// ensureConfigFile seeds the GoFrame config file from the committed example when
+// it is missing (fresh checkout), so defaults exist without being tracked.
+func ensureConfigFile() {
+	const example = "manifest/config/config.example.yaml"
+	const target = "manifest/config/config.yaml"
+	if gfile.Exists(target) || !gfile.Exists(example) {
+		return
+	}
+	if raw := gfile.GetBytes(example); len(raw) > 0 {
+		_ = gfile.PutBytes(target, raw)
+	}
+}
+
+// migrateLegacy imports configuration previously stored in the SQLite `config`
+// table into the GoFrame config file, so upgraded deployments keep their keys
+// and secrets. It only fills keys the config file leaves blank.
+func migrateLegacy() {
+	rows, err := store.DB().GetAll(context.Background(), "SELECT k, v FROM "+consts.TableConfig)
+	if err != nil || len(rows) == 0 {
+		return
+	}
+	changed := false
+	for _, row := range rows {
+		key := row["k"].String()
+		if key == "" {
+			continue
+		}
+		var value interface{}
+		if json.Unmarshal([]byte(row["v"].String()), &value) != nil {
+			continue
+		}
+		if isBlank(value) || !isBlank(storeInst.Get(key)) {
+			continue
+		}
+		storeInst.Set(key, value)
+		changed = true
+	}
+	if changed {
+		_ = storeInst.Save()
+	}
+}
+
+// isBlank reports whether a configuration value is absent or empty.
+func isBlank(v interface{}) bool {
+	switch t := v.(type) {
+	case nil:
+		return true
+	case string:
+		return strings.TrimSpace(t) == ""
+	case []interface{}:
+		return len(t) == 0
+	case map[string]interface{}:
+		return len(t) == 0
+	default:
+		return false
+	}
 }
 
 // C returns the process-wide configuration store, initialising it on demand.
@@ -64,224 +108,138 @@ func C() *Store {
 	if storeInst == nil {
 		_ = Init()
 	}
-	if storeInst == nil {
-		storeInst = &Store{data: defaultValues()}
-	}
 	return storeInst
 }
 
-// Path returns the SQLite database path holding the configuration.
-func (s *Store) Path() string { return store.Path() }
+func bg() context.Context { return context.Background() }
 
-func defaultValues() map[string]interface{} {
-	defaults := map[string]interface{}{}
-	if err := json.Unmarshal(defaultTemplate, &defaults); err != nil {
-		defaults = map[string]interface{}{}
-	}
-	return defaults
+func adapter() (*gcfg.AdapterFile, bool) {
+	a, ok := g.Cfg().GetAdapter().(*gcfg.AdapterFile)
+	return a, ok
 }
 
-func load() (*Store, error) {
-	data := defaultValues()
-
-	ctx := context.Background()
-	rows, err := store.DB().GetAll(ctx, "SELECT k, v FROM "+consts.TableConfig)
-	if err != nil {
-		return nil, err
+// get resolves a key with an environment variable (UPPER_SNAKE_CASE of the key)
+// taking precedence over the config file, then the supplied default. The
+// returned gvar.Var carries GoFrame's type conversions.
+func (s *Store) get(key string, def interface{}) *gvar.Var {
+	if v, ok := os.LookupEnv(strings.ToUpper(key)); ok {
+		return gvar.New(v)
 	}
-	for _, row := range rows {
-		key := row["k"].String()
-		if key == "" {
-			continue
-		}
-		var value interface{}
-		if err := json.Unmarshal([]byte(row["v"].String()), &value); err != nil {
-			continue
-		}
-		data[key] = value
+	v, err := g.Cfg().Get(bg(), key, def)
+	if err != nil || v == nil {
+		return gvar.New(def)
 	}
-
-	// Optional runtime overlay: <data_root>/config.json (git-ignored). It wins
-	// over the database and the embedded defaults so operators can keep secrets
-	// such as the Redis password out of the repository.
-	overlay := readLocalOverlay()
-	for k, v := range overlay {
-		data[k] = v
-	}
-
-	s := &Store{data: data, overlay: overlay}
-	// Seed defaults on first run so the table is the source of truth.
-	if len(rows) == 0 {
-		if err := s.Save(); err != nil {
-			return nil, err
-		}
-	}
-	return s, nil
+	return v
 }
 
-// LocalConfigPath returns the path of the optional runtime config overlay.
-func LocalConfigPath() string {
-	return filepath.Join(store.DataRoot(), "config.json")
-}
-
-// readLocalOverlay loads <data_root>/config.json when present. A missing file is
-// not an error; invalid JSON is logged and ignored.
-func readLocalOverlay() map[string]interface{} {
-	raw, err := os.ReadFile(LocalConfigPath())
-	if err != nil {
-		return nil
+// Path returns the resolved path of the active GoFrame config file.
+func (s *Store) Path() string {
+	if a, ok := adapter(); ok {
+		if p, err := a.GetFilePath("config"); err == nil {
+			return p
+		}
 	}
-	overlay := map[string]interface{}{}
-	if err := json.Unmarshal(raw, &overlay); err != nil {
-		g.Log().Warningf(context.Background(), "config.json is not valid JSON, ignoring: %v", err)
-		return nil
-	}
-	g.Log().Infof(context.Background(), "config: loaded %d key(s) from %s", len(overlay), LocalConfigPath())
-	return overlay
+	return ""
 }
 
 // Get returns the raw value for key, or nil when absent.
 func (s *Store) Get(key string) interface{} {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
-	return s.data[key]
+	return s.get(key, nil).Val()
 }
 
 // GetString returns a string value, returning "" when absent.
 func (s *Store) GetString(key string) string {
-	switch t := s.Get(key).(type) {
-	case string:
-		return t
-	case nil:
-		return ""
-	default:
-		return fmt.Sprintf("%v", t)
-	}
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	return s.get(key, "").String()
 }
 
 // GetBool returns a boolean value.
 func (s *Store) GetBool(key string) bool {
-	switch t := s.Get(key).(type) {
-	case bool:
-		return t
-	case string:
-		return strings.EqualFold(t, "true")
-	case float64:
-		return t != 0
-	default:
-		return false
-	}
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	return s.get(key, false).Bool()
 }
 
 // GetInt returns an integer value with an explicit default.
 func (s *Store) GetInt(key string, def int) int {
-	switch t := s.Get(key).(type) {
-	case int:
-		return t
-	case int64:
-		return int(t)
-	case float64:
-		return int(t)
-	case json.Number:
-		if n, err := t.Int64(); err == nil {
-			return int(n)
-		}
-	case string:
-		var n int
-		if _, err := fmt.Sscanf(t, "%d", &n); err == nil {
-			return n
-		}
-	}
-	return def
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	return s.get(key, def).Int()
 }
 
 // GetFloat returns a float value with an explicit default.
 func (s *Store) GetFloat(key string, def float64) float64 {
-	switch t := s.Get(key).(type) {
-	case float64:
-		return t
-	case int:
-		return float64(t)
-	case int64:
-		return float64(t)
-	case json.Number:
-		if f, err := t.Float64(); err == nil {
-			return f
-		}
-	case string:
-		var f float64
-		if _, err := fmt.Sscanf(t, "%g", &f); err == nil {
-			return f
-		}
-	}
-	return def
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	return s.get(key, def).Float64()
 }
 
-// GetStringMap returns a shallow copy of a nested object value.
+// GetStringMap returns a nested object value as a map (nil when absent).
 func (s *Store) GetStringMap(key string) map[string]interface{} {
-	v, ok := s.Get(key).(map[string]interface{})
-	if !ok {
-		return nil
-	}
-	out := make(map[string]interface{}, len(v))
-	for k, val := range v {
-		out[k] = val
-	}
-	return out
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	return s.get(key, nil).Map()
 }
 
-// Set updates a single key in memory. Call Save to persist.
+// Set updates a single key in the in-memory adapter. Call Save to persist it to
+// the config file.
 func (s *Store) Set(key string, value interface{}) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	s.data[key] = value
+	if a, ok := adapter(); ok {
+		_ = a.Set(key, value)
+	}
 }
 
-// Snapshot returns a deep copy of the current configuration.
+// Snapshot returns all configuration as a plain map.
 func (s *Store) Snapshot() map[string]interface{} {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
-	return deepCopy(s.data).(map[string]interface{})
+	data, err := g.Cfg().Data(bg())
+	if err != nil || data == nil {
+		return map[string]interface{}{}
+	}
+	return data
 }
 
-// Save upserts every in-memory key into the SQLite config table. Keys supplied
-// by the git-ignored config.json overlay are skipped so their values (often
-// secrets) never land in the database.
+// Save persists the current configuration back to the GoFrame config file and
+// drops the in-memory cache so the next read sees the written values.
 func (s *Store) Save() error {
-	snapshot := s.Snapshot()
-	s.mu.RLock()
-	overlay := s.overlay
-	s.mu.RUnlock()
-	now := time.Now().Unix()
-	rows := make([]g.Map, 0, len(snapshot))
-	for k, v := range snapshot {
-		if _, isOverlay := overlay[k]; isOverlay {
-			continue
-		}
-		encoded, err := json.Marshal(v)
-		if err != nil {
-			continue
-		}
-		rows = append(rows, g.Map{"k": k, "v": string(encoded), "updated_at": now})
-	}
-	if len(rows) == 0 {
-		return nil
-	}
-	_, err := store.DB().Model(consts.TableConfig).Ctx(context.Background()).Data(rows).OnConflict("k").Save()
-	return err
-}
-
-// Reload re-reads configuration from the database and the config.json overlay,
-// discarding in-memory changes.
-func (s *Store) Reload() {
-	fresh, err := load()
-	if err != nil {
-		return
-	}
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	s.data = fresh.data
-	s.overlay = fresh.overlay
+	data, err := g.Cfg().Data(bg())
+	if err != nil {
+		return err
+	}
+	raw, err := yaml.Marshal(data)
+	if err != nil {
+		return err
+	}
+	a, ok := adapter()
+	if !ok {
+		return nil
+	}
+	path, err := a.GetFilePath("config")
+	if err != nil || path == "" {
+		return err
+	}
+	if err := gfile.PutBytes(path, raw); err != nil {
+		return err
+	}
+	a.Clear()
+	return nil
+}
+
+// Reload discards the in-memory cache, forcing a re-read from file next access.
+func (s *Store) Reload() {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if a, ok := adapter(); ok {
+		a.Clear()
+	}
 }
 
 // MaskKey masks the middle of a secret, keeping the first/last 4 characters.
@@ -290,23 +248,4 @@ func MaskKey(value string) string {
 		return value
 	}
 	return value[:4] + strings.Repeat("*", len(value)-8) + value[len(value)-4:]
-}
-
-func deepCopy(v interface{}) interface{} {
-	switch t := v.(type) {
-	case map[string]interface{}:
-		out := make(map[string]interface{}, len(t))
-		for k, val := range t {
-			out[k] = deepCopy(val)
-		}
-		return out
-	case []interface{}:
-		out := make([]interface{}, len(t))
-		for i, val := range t {
-			out[i] = deepCopy(val)
-		}
-		return out
-	default:
-		return v
-	}
 }
