@@ -94,13 +94,6 @@ agent_max_context_tokens: 64000
 agent_max_context_turns: 30
 agent_max_steps: 30
 agent_permission_mode: full_access
-agent_compact_enabled: true
-agent_compact_threshold_tokens: 48000
-agent_compact_retain_tokens: 8000
-agent_compact_max_tokens: 4096
-subagent_enabled: true
-subagent_max_depth: 1
-subagent_max_active: 8
 disabled_tools: []
 disabled_skills: []
 enable_thinking: false

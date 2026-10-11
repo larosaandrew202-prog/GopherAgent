@@ -74,7 +74,6 @@ export interface StreamEvent {
     | 'tool_start'
     | 'tool_progress'
     | 'tool_end'
-    | 'subagent_step'
     | 'image'
     | 'text'
     | 'video'
@@ -254,7 +253,6 @@ export interface AppConfig {
   agent_max_context_turns?: number;
   agent_max_steps?: number;
   enable_thinking?: boolean;
-  subagent_enabled?: boolean;
   self_evolution_enabled?: boolean;
   permission_modes?: PermissionMode[];
   agent_permission_mode?: PermissionMode;

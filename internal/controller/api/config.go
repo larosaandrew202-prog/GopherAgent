@@ -42,7 +42,7 @@ var intKeys = map[string]struct{}{
 }
 var boolKeys = map[string]struct{}{
 	consts.CfgEnableThinking: {}, consts.CfgSelfEvolution: {},
-	consts.CfgKnowledge: {}, consts.CfgAgent: {}, consts.CfgSubagentEnabled: {},
+	consts.CfgKnowledge: {}, consts.CfgAgent: {},
 	consts.CfgMemoryAutoFlush: {},
 	consts.CfgImageEnabled:    {}, consts.CfgImageFallback: {},
 }
@@ -72,7 +72,7 @@ func buildEditableKeys() []string {
 		consts.CfgPresencePenalty, consts.CfgRequestTimeout, consts.CfgProxy,
 		consts.CfgAgent, consts.CfgAgentMaxContextTokens, consts.CfgAgentMaxContextTurns,
 		consts.CfgAgentMaxSteps, consts.CfgAgentWorkspace, consts.CfgAgentPermissionMode,
-		consts.CfgDisabledTools, consts.CfgSubagentEnabled, consts.CfgEnableThinking,
+		consts.CfgDisabledTools, consts.CfgEnableThinking,
 		consts.CfgReasoningEffort, consts.CfgReasoningByModel, consts.CfgKnowledge,
 		consts.CfgSelfEvolution, consts.CfgCustomProviders, consts.CfgWebPassword,
 	}
@@ -154,7 +154,6 @@ func GetConfig(r *ghttp.Request) {
 		"reasoning_effort":          s.GetString(consts.CfgReasoningEffort),
 		"reasoning_effort_by_model": s.GetStringMap(consts.CfgReasoningByModel),
 		"self_evolution_enabled":    s.GetBool(consts.CfgSelfEvolution),
-		"subagent_enabled":          s.GetBool(consts.CfgSubagentEnabled),
 		"agent_permission_mode":     normalizePermission(s.GetString(consts.CfgAgentPermissionMode)),
 		"permission_modes":          permissionModes,
 		"api_bases":                 apiBases,

@@ -33,7 +33,6 @@ export const mockConfig: AppConfig = {
   agent_max_context_turns: 20,
   agent_max_steps: 20,
   enable_thinking: true,
-  subagent_enabled: true,
   self_evolution_enabled: false,
   permission_modes: ['read_only', 'workspace_write', 'full_access'],
   agent_permission_mode: 'full_access',
