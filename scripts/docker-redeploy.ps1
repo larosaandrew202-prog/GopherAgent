@@ -5,7 +5,7 @@
 #   .\scripts\docker-redeploy.ps1
 #   .\scripts\docker-redeploy.ps1 -HostPort 80
 #   .\scripts\docker-redeploy.ps1 -Target backend -HostPort 9899 -ContainerPort 9899
-#   .\scripts\docker-redeploy.ps1 -ConfigFile C:\gopher\config.json
+#   .\scripts\docker-redeploy.ps1 -ConfigFile C:\gopher\config.yaml
 param(
   [string]$Image = "gopher-agent",
   [string]$Container = "gopher-agent",
@@ -13,7 +13,7 @@ param(
   [int]$ContainerPort = 80,
   [string]$DataVolume = "gopher-data",
   [string]$Tz = "Asia/Shanghai",
-  [string]$ConfigFile = "/etc/gopher/config.json",
+  [string]$ConfigFile = "/etc/gopher/config.yaml",
   [string]$Target = ""
 )
 
@@ -43,15 +43,16 @@ $run = @(
   "-e", "TZ=$Tz",
   "--restart", "unless-stopped"
 )
-# Mount an operator-supplied config.json read-only at the data root (recommended
-# home for Redis credentials). Skipped with a warning when the file is absent so
-# that docker does not create a *directory* in its place. On Windows pass a
-# Windows path, e.g. -ConfigFile C:\gopher\config.json
+# Mount an operator-supplied GoFrame config.yaml over the image default. Secrets
+# are usually better injected as environment variables (they override the file).
+# Mounted read-write so console edits persist. Skipped with a warning when the
+# file is absent so docker does not create a *directory* in its place. On Windows
+# pass a Windows path, e.g. -ConfigFile C:\gopher\config.yaml
 if ($ConfigFile) {
   if (Test-Path -LiteralPath $ConfigFile) {
-    $run += @("-v", "${ConfigFile}:/data/config.json:ro")
+    $run += @("-v", "${ConfigFile}:/app/manifest/config/config.yaml")
   } else {
-    Write-Warning "ConfigFile '$ConfigFile' not found; mount skipped (container will use env vars / DB / built-in defaults)."
+    Write-Warning "ConfigFile '$ConfigFile' not found; mount skipped (container will use env vars / built-in defaults)."
   }
 }
 $run += $Image
