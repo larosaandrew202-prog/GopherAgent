@@ -39,3 +39,6 @@ node_modules/
 
 # log
 *.log
+
+# GoFrame config (may hold secrets written by the console)
+manifest/config/config.yaml

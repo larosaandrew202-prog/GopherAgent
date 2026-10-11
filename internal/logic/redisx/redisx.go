@@ -4,13 +4,16 @@
 // startup) every accessor returns nil/empty and the callers fall back to their
 // in-process implementations, so a single-node deployment keeps working with no
 // Redis at all.
+//
+// Configuration is read through the config facade, so environment variables
+// override it: `redis_enabled` -> REDIS_ENABLED, `redis_addr` -> REDIS_ADDR,
+// `redis_password` -> REDIS_PASSWORD, `redis_db` -> REDIS_DB,
+// `redis_prefix` -> REDIS_PREFIX.
 package redisx
 
 import (
 	"context"
 	"fmt"
-	"os"
-	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -34,20 +37,14 @@ var (
 // Init builds the client from configuration and verifies connectivity. A failed
 // ping leaves Redis disabled so callers fall back to memory; the returned error
 // is informational. Safe to call more than once.
-//
-// Environment variables override the config store so secrets (the password in
-// particular) never have to live in a committed file:
-//
-//	GOPHER_REDIS_ENABLED, GOPHER_REDIS_ADDR, GOPHER_REDIS_PASSWORD,
-//	GOPHER_REDIS_DB, GOPHER_REDIS_PREFIX
 func Init(ctx context.Context) error {
 	cfg := config.C()
 
-	on := envBool("GOPHER_REDIS_ENABLED", cfg.GetBool(consts.CfgRedisEnabled))
-	effAddr := envStr("GOPHER_REDIS_ADDR", cfg.GetString(consts.CfgRedisAddr))
-	password := envStr("GOPHER_REDIS_PASSWORD", cfg.GetString(consts.CfgRedisPassword))
-	db := envInt("GOPHER_REDIS_DB", cfg.GetInt(consts.CfgRedisDB, 0))
-	effPrefix := envStr("GOPHER_REDIS_PREFIX", cfg.GetString(consts.CfgRedisPrefix))
+	on := cfg.GetBool(consts.CfgRedisEnabled)
+	effAddr := cfg.GetString(consts.CfgRedisAddr)
+	password := cfg.GetString(consts.CfgRedisPassword)
+	db := cfg.GetInt(consts.CfgRedisDB, 0)
+	effPrefix := cfg.GetString(consts.CfgRedisPrefix)
 	if effPrefix == "" {
 		effPrefix = defaultPrefix
 	}
@@ -55,7 +52,6 @@ func Init(ctx context.Context) error {
 	mu.Lock()
 	defer mu.Unlock()
 
-	// Tear down any previous client (config reload).
 	if client != nil {
 		_ = client.Close()
 		client = nil
@@ -84,39 +80,6 @@ func Init(ctx context.Context) error {
 	client = c
 	enabled = true
 	return nil
-}
-
-func envStr(key, def string) string {
-	if v, ok := os.LookupEnv(key); ok {
-		return strings.TrimSpace(v)
-	}
-	return strings.TrimSpace(def)
-}
-
-func envBool(key string, def bool) bool {
-	v, ok := os.LookupEnv(key)
-	if !ok {
-		return def
-	}
-	switch strings.ToLower(strings.TrimSpace(v)) {
-	case "1", "true", "yes", "on":
-		return true
-	case "0", "false", "no", "off":
-		return false
-	default:
-		return def
-	}
-}
-
-func envInt(key string, def int) int {
-	v, ok := os.LookupEnv(key)
-	if !ok {
-		return def
-	}
-	if n, err := strconv.Atoi(strings.TrimSpace(v)); err == nil {
-		return n
-	}
-	return def
 }
 
 // Close releases the client. Used on shutdown/tests.
@@ -163,7 +126,7 @@ func Prefix() string {
 	return prefix
 }
 
-// Addr returns the effective address Init resolved (env or config store).
+// Addr returns the effective address Init resolved.
 func Addr() string {
 	mu.RLock()
 	defer mu.RUnlock()

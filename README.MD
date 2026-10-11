@@ -55,45 +55,38 @@ npm run build   # 产出 web/dist/
 
 ## 🔧 配置
 
-三种方式，优先级 **`config.json` > 数据库（控制台改）> 内置默认值**：
+配置集中在 **GoFrame 配置文件** `manifest/config/config.yaml`（仓库自带默认值，密钥留空）。优先级：**环境变量 > 配置文件 > 代码默认值**。
 
-1. **控制台**：在网页里改，落到 SQLite `gopher_agent.db`，适合日常调整。
-2. **`config.json`**：数据目录下的 JSON，**已被 `.gitignore`，不会进仓库**；仓库只提交示例 `config.example.json`。**密钥建议放这里**：
+1. **配置文件** `manifest/config/config.yaml`：模型、供应商 Key、图像生成、Agent、Redis 等全部设置。控制台「配置」页的修改会**写回这个文件**并生效。
+2. **环境变量**：把配置键名转成大写下划线即可**覆盖**文件值，例如 `model` → `MODEL`、`web_port` → `WEB_PORT`、`redis_addr` → `REDIS_ADDR`。**密钥建议放这里**：
 
    ```bash
-   cp config.example.json config.json
-   # 编辑 config.json，填入 Redis 地址/密码、API Key 等
+   export MODEL=deepseek-v4-flash
+   export DEEPSEEK_API_KEY=sk-...
+   export REDIS_ENABLED=1
+   export REDIS_ADDR=127.0.0.1:6379
+   export REDIS_PASSWORD=...
    ```
 
-   只写需要覆盖的键即可，未写的键仍沿用数据库/默认值。
-3. **环境变量**：优先级最高，适合容器 / systemd。
+> **升级说明**：旧版本存在 SQLite `config` 表里的配置（含 API Key）会在首次启动时**自动迁移**进 `manifest/config/config.yaml`。
+> **密钥勿提交**：建议 `git rm --cached manifest/config/config.yaml` 并加入 `.gitignore`，或用环境变量注入。
 
 ### Redis（可选）
 
 默认关闭；未配置时所有协调状态回退到进程内存，**单机部署完全不受影响**。启用后用于：
-SSE 事件总线（多实例可跨节点收发/取消）、记忆 flush 水位、调度器分布式锁、登录失败限流。
+SSE 事件总线（多实例跨节点收发/取消）、记忆 flush 水位、调度器分布式锁、登录失败限流。
 
-```jsonc
-// config.json
-{
-  "redis_enabled": true,
-  "redis_addr": "127.0.0.1:6379",
-  "redis_password": "",
-  "redis_db": 0,
-  "redis_prefix": "gopher:"
-}
+```yaml
+# manifest/config/config.yaml
+redis_enabled: true
+redis_addr: 127.0.0.1:6379
+redis_password: ""
+redis_db: 0
+redis_prefix: "gopher:"
 ```
 
-或环境变量（覆盖配置文件）：
-
-```bash
-export GOPHER_REDIS_ENABLED=1
-export GOPHER_REDIS_ADDR=127.0.0.1:6379
-export GOPHER_REDIS_PASSWORD=your-password
-```
-
-启动日志出现 `redis connected: <addr>` 与 `chat bus: redis (multi-node)` 即生效；
-连接失败会打 warning 并自动降级为内存实现。
+或环境变量覆盖（`REDIS_ENABLED` / `REDIS_ADDR` / `REDIS_PASSWORD` …）。
+启动日志出现 `redis connected: <addr>` 与 `chat bus: redis (multi-node)` 即生效；连接失败会打 warning 并自动降级为内存。
 
 ## 🎨 图像生成
 

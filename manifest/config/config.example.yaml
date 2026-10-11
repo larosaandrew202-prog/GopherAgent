@@ -1,0 +1,125 @@
+# GopherAgent configuration (GoFrame config file).
+#
+# Every key can be overridden by an environment variable named after the key in
+# UPPER_SNAKE_CASE, e.g. `model` -> MODEL, `redis_addr` -> REDIS_ADDR.
+#
+# Console edits are persisted to <data_root>/config.yaml, which GoFrame loads in
+# preference to this file. Keep secrets blank here; put them in env or the
+# data-root file.
+
+server:
+  openapiPath: "/api.json"
+  swaggerPath: "/swagger"
+
+logger:
+  level: "all"
+  stdout: true
+
+# --- chat / model ---------------------------------------------------------
+cow_lang: auto
+channel_type: web
+model: deepseek-v4-flash
+bot_type: ""
+clear_memory_commands:
+  - "#清除记忆"
+proxy: ""
+character_desc: "You are a helpful AI assistant. You aim to answer and solve any questions people have, and can communicate in multiple languages."
+temperature: 0.9
+top_p: 1
+frequency_penalty: 0
+presence_penalty: 0
+request_timeout: 180
+
+# --- providers ------------------------------------------------------------
+deepseek_api_key: ""
+deepseek_api_base: "https://api.deepseek.com/v1"
+qianfan_api_key: ""
+qianfan_api_base: "https://qianfan.baidubce.com/v2"
+minimax_api_key: ""
+zhipu_ai_api_key: ""
+zhipu_ai_api_base: "https://open.bigmodel.cn/api/paas/v4"
+moonshot_api_key: ""
+moonshot_base_url: "https://api.moonshot.cn/v1"
+ark_api_key: ""
+ark_base_url: "https://ark.cn-beijing.volces.com/api/v3"
+dashscope_api_key: ""
+claude_api_key: ""
+claude_api_base: "https://api.anthropic.com/v1"
+open_ai_api_key: ""
+open_ai_api_base: "https://api.openai.com/v1"
+gemini_api_key: ""
+gemini_api_base: "https://generativelanguage.googleapis.com"
+mimo_api_key: ""
+mimo_api_base: "https://api.xiaomimimo.com/v1"
+custom_api_key: ""
+custom_api_base: ""
+custom_providers: []
+bocha_api_key: ""
+web_search_provider: ""
+web_search_strategy: auto
+
+# --- embedding / memory ---------------------------------------------------
+embedding_provider: openai
+embedding_model: text-embedding-3-small
+embedding_dimensions: 1536
+embedding_api_key: ""
+embedding_api_base: ""
+memory_vector_weight: 0.7
+memory_keyword_weight: 0.3
+memory_max_results: 10
+memory_min_score: 0.1
+memory_half_life_days: 30
+memory_auto_flush: true
+memory_flush_turns: 10
+memory_chunk_tokens: 500
+memory_chunk_overlap: 50
+
+# --- image generation -----------------------------------------------------
+image_enabled: false
+image_provider: auto
+image_model: ""
+image_api_key: ""
+image_api_base: ""
+image_size: auto
+image_quality: auto
+image_max_per_call: 1
+image_timeout_sec: 300
+image_fallback: true
+image_output_dir: ""
+
+# --- agent ----------------------------------------------------------------
+agent: true
+agent_workspace: ""
+agent_max_context_tokens: 64000
+agent_max_context_turns: 30
+agent_max_steps: 30
+agent_permission_mode: full_access
+agent_compact_enabled: true
+agent_compact_threshold_tokens: 48000
+agent_compact_retain_tokens: 8000
+agent_compact_max_tokens: 4096
+subagent_enabled: true
+subagent_max_depth: 1
+subagent_max_active: 8
+disabled_tools: []
+disabled_skills: []
+enable_thinking: false
+reasoning_effort: high
+reasoning_effort_by_model: {}
+knowledge: true
+self_evolution_enabled: true
+mcp_tool_retrieval_enabled: false
+
+# --- web ------------------------------------------------------------------
+web_host: ""
+web_port: 9899
+web_password: ""
+debug: false
+
+# --- redis (optional) -----------------------------------------------------
+# When disabled/unreachable, all coordination state falls back to process memory.
+redis_enabled: false
+redis_addr: ""
+redis_password: ""
+redis_db: 0
+redis_prefix: "gopher:"
