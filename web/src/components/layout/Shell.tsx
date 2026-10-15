@@ -47,10 +47,10 @@ export function Shell() {
   return (
     <>
       <LoginOverlay />
-      <div id="app" className={hidden ? 'hidden' : 'relative flex h-screen'}>
+      <div id="app" className={hidden ? 'hidden' : 'relative flex h-dvh'}>
         <Sidebar />
         <SessionPanel />
-        <div id="main-content" className="flex-1 flex flex-col min-w-0 h-screen">
+        <div id="main-content" className="flex-1 flex flex-col min-w-0 h-full">
           <Header />
           <div id="content-area" className="flex-1 overflow-hidden">
             <div id={`view-${view}`} className="view active">

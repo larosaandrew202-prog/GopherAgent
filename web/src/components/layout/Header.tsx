@@ -22,7 +22,7 @@ export function Header() {
   const meta = VIEW_META[view];
 
   return (
-    <header className="h-14 flex items-center gap-3 px-4 border-b border-slate-200 dark:border-white/10 bg-white dark:bg-[#1F1F1F] flex-shrink-0 z-10">
+    <header className="h-11 sm:h-14 flex items-center gap-1.5 sm:gap-3 px-2 sm:px-4 border-b border-slate-200 dark:border-white/10 bg-white dark:bg-[#1F1F1F] flex-shrink-0 z-10">
       <Button
         type="text"
         className={`lg:hidden ${ICON_BTN}`}

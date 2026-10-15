@@ -289,7 +289,7 @@ export function Composer() {
   };
 
   return (
-    <div className="flex-shrink-0 border-t border-slate-200 dark:border-white/10 bg-white dark:bg-[#1F1F1F] px-4 py-3">
+    <div className="composer-wrap flex-shrink-0 border-t border-slate-200 dark:border-white/10 bg-white dark:bg-[#1F1F1F] px-4 py-3">
       <div className="max-w-3xl mx-auto">
         <div className="composer-card">
           {attachments.length ? (
