@@ -2298,3 +2298,81 @@
    leaves an inline icon a touch low next to its label. Centre them instead.
    ========================================================================== */
 svg.lucide { vertical-align: middle; }
+
+/* ==========================================================================
+   Mobile / touch adaptation
+   ========================================================================== */
+
+/* The shell owns scrolling: each view scrolls internally, the page never does.
+   Without this the html element can scroll a sliver on phones when the dynamic
+   viewport changes, which shows a page scrollbar. */
+html,
+body {
+    height: 100%;
+    overflow: hidden;
+}
+#app {
+    overflow: hidden;
+}
+
+/* The app fits the visible viewport on phones: --app-h is published by main.tsx
+   from visualViewport, so the soft keyboard shrinks it and the composer stays
+   above the keyboard. Desktop keeps the Tailwind `h-dvh` baseline (no var), so
+   a bad/absent --app-h can never collapse the shell. */
+@supports (height: 100dvh) {
+    .session-panel,
+    .workspace-panel {
+        height: 100dvh;
+    }
+}
+
+/* Safe areas for notched phones / the home indicator (viewport-fit=cover). */
+@media (max-width: 768px) {
+    #app {
+        padding-top: env(safe-area-inset-top);
+        padding-bottom: env(safe-area-inset-bottom);
+    }
+    /* Sidebar is a floating overlay inset from the edges on mobile. */
+    #app > aside {
+        top: calc(0.5rem + env(safe-area-inset-top));
+        left: calc(0.5rem + env(safe-area-inset-left));
+        bottom: calc(0.5rem + env(safe-area-inset-bottom));
+    }
+    .session-panel {
+        height: 100dvh;
+        padding-top: env(safe-area-inset-top);
+        padding-bottom: env(safe-area-inset-bottom);
+    }
+    .workspace-panel {
+        padding-top: env(safe-area-inset-top);
+        padding-bottom: env(safe-area-inset-bottom);
+    }
+}
+
+/* Touch devices have no hover: reveal controls that are otherwise hover-only
+   (session row menu, message edit/delete, attachment remove, file actions). */
+@media (hover: none), (pointer: coarse) {
+    .session-item .session-more,
+    .session-more {
+        display: inline-flex !important;
+    }
+    .edit-msg-btn,
+    .delete-msg-btn,
+    .knowledge-actions,
+    .att-remove,
+    .composer-card .att-remove,
+    .workspace-breadcrumb .crumb-root {
+        opacity: 1 !important;
+    }
+}
+
+/* Breathing room above the bottom edge, plus the on-screen keyboard height
+   (--kb, published by main.tsx) and the home-indicator safe area. */
+.composer-wrap {
+    padding-bottom: calc(0.75rem + env(safe-area-inset-bottom));
+}
+@media (max-width: 768px) {
+    .composer-wrap {
+        padding-bottom: calc(1rem + var(--kb, 0px) + env(safe-area-inset-bottom));
+    }
+}
