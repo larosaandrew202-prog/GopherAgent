@@ -132,7 +132,8 @@ func AuthLogin(r *ghttp.Request) {
 		Value:    token,
 		Path:     "/",
 		HttpOnly: true,
-		SameSite: http.SameSiteLaxMode,
+		SameSite: http.SameSiteNoneMode,
+		Secure:   true,
 	}
 	r.Response.Header().Add("Set-Cookie", cookie.String())
 	writeJSON(r, map[string]interface{}{"status": consts.StatusSuccess, "ok": true, "token": token})
@@ -140,7 +141,15 @@ func AuthLogin(r *ghttp.Request) {
 
 // AuthLogout clears the auth cookie.
 func AuthLogout(r *ghttp.Request) {
-	cookie := &http.Cookie{Name: authCookieName, Value: "", Path: "/", MaxAge: -1}
+	cookie := &http.Cookie{
+		Name:     authCookieName,
+		Value:    "",
+		Path:     "/",
+		MaxAge:   -1,
+		HttpOnly: true,
+		SameSite: http.SameSiteNoneMode,
+		Secure:   true,
+	}
 	r.Response.Header().Add("Set-Cookie", cookie.String())
 	writeJSON(r, map[string]interface{}{"status": consts.StatusSuccess})
 }
