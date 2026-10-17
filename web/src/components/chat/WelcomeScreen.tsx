@@ -29,7 +29,7 @@ export function WelcomeScreen() {
   return (
     <div className="flex flex-col items-center justify-center h-full px-6 pb-16" style={{ paddingTop: '6vh' }}>
       {/* Title block is desktop-only: on phones the chat page stays clean. */}
-      <BrandMark className="hidden md:block w-16 h-16 mb-6 shadow-lg shadow-primary-500/20" rounded="rounded-2xl" glyph="text-2xl" />
+      <BrandMark className="hidden md:flex w-16 h-16 mb-6 shadow-lg shadow-primary-500/20" rounded="rounded-2xl" glyph="text-2xl" />
       <h1 className="hidden md:block text-2xl font-bold text-slate-800 dark:text-slate-100 mb-3">Gopher Agent</h1>
       <p
         className="hidden md:block text-slate-500 dark:text-slate-400 text-center max-w-lg mb-10 leading-relaxed"
