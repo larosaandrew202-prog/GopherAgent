@@ -39,7 +39,20 @@ export default defineConfig(({ mode }) => {
     build: {
       outDir: 'dist',
       sourcemap: false,
-      chunkSizeWarningLimit: 1500,
+      // Split the big vendors into their own chunks: the initial payload shrinks
+      // and chunks stay cached independently. d3 is only pulled in when the
+      // (lazy) knowledge view is opened.
+      rollupOptions: {
+        output: {
+          manualChunks: {
+            react: ['react', 'react-dom'],
+            antd: ['antd'],
+            markdown: ['markdown-it', 'highlight.js'],
+            d3: ['d3'],
+          },
+        },
+      },
+      chunkSizeWarningLimit: 1000,
     },
   };
 });

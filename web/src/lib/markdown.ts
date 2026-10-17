@@ -3,7 +3,7 @@
  * Ported from console.js::createMd with the CJK-friendly emphasis patch and
  * the greedy-linkify fix, so LLM output renders the same as the vanilla app. */
 import MarkdownIt from 'markdown-it';
-import hljs from 'highlight.js';
+import hljs from 'highlight.js/lib/common';
 
 // CJK ideographs, kana, Hangul and full/half-width forms (BMP only).
 const CJK_CHAR_RE =

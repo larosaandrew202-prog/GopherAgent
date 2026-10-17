@@ -8,7 +8,7 @@ import { renderMarkdown } from '@/lib/markdown';
 import { WS_KIND_ICONS, fileKind } from '@/lib/constants';
 import { formatSize } from '@/lib/format';
 import { classNames } from '@/lib/format';
-import hljs from 'highlight.js';
+import hljs from 'highlight.js/lib/common';
 
 function PreviewBody({ content, kind, path }: { content: string; kind: string; path: string }) {
   if (kind === 'image') {
