@@ -1,0 +1,43 @@
+# GopherAgent backend — systemd unit.
+#
+#   sudo cp scripts/gopheragent.service /etc/systemd/system/
+#   sudo systemctl daemon-reload
+#   sudo systemctl enable --now gopheragent
+#   journalctl -u gopheragent -f
+#
+# Layout assumed:
+#   /opt/gopheragent/gopheragent                  the binary (scripts/build.sh native)
+#   /opt/gopheragent/manifest/config/config.yaml  GoFrame config (WorkingDirectory matters)
+#   workspace / data                              see `agent_workspace` in the config
+#
+# The panel manages the host (nginx/mysql/... ), so it normally runs as root.
+
+[Unit]
+Description=GopherAgent (OpsPanel) backend
+Documentation=https://github.com/
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/opt/gopheragent
+ExecStart=/opt/gopheragent/gopheragent
+
+# Keep it resident: restart on crash and after reboots.
+Restart=always
+RestartSec=3
+
+# Config is read from ./manifest/config/config.yaml under WorkingDirectory.
+# Any config key can also be overridden through the environment (UPPER_SNAKE),
+# e.g. web_port -> WEB_PORT. Put secrets in an EnvironmentFile instead of here.
+# EnvironmentFile=-/etc/gopheragent.env
+# Environment=WEB_PORT=9899
+# Environment=REDIS_ENABLED=true
+
+LimitNOFILE=65535
+KillSignal=SIGTERM
+TimeoutStopSec=20
+
+[Install]
+WantedBy=multi-user.target
