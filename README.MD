@@ -185,6 +185,5 @@ GopherAgent/
 │       ├── paths/             # agent 工作区解析
 │       ├── scheduler/ + schedulerrun/   # 定时任务存储与后台 worker
 │       └── chat/              # 会话/消息持久化、Agent 循环、SSE Hub（内存/Redis）
-├── web/                       # 前端控制台（React + Vite + antd）
 └── image/                     # README 效果图
 ```
